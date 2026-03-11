@@ -1,13 +1,15 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ALERTS } from '../constants/mockData';
-import { Colors } from '../theme/colors';
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ALERTS } from "../constants/mockData";
+import { Colors } from "../theme/colors";
 
 export const BottomNav = ({ active, onChange }) => {
   const tabs = [
-    { id: 'dashboard', icon: '🏠', label: 'Accueil' },
-    { id: 'zones', icon: '📍', label: 'Zones' },
-    { id: 'alerts', icon: '🔔', label: 'Alertes' },
-    { id: 'profile', icon: '👤', label: 'Profil' },
+    { id: "dashboard", icon: "🏠", label: "Accueil" },
+    { id: "zones", icon: "📍", label: "Zones" },
+    { id: "alerts", icon: "🔔", label: "Alertes" },
+    { id: "family", icon: "👨‍👩‍👧", label: "Famille" }, // ✅ nouveau
+
+    { id: "profile", icon: "👤", label: "Profil" },
   ];
 
   const alertCount = ALERTS.filter((a) => !a.resolved).length;
@@ -24,7 +26,7 @@ export const BottomNav = ({ active, onChange }) => {
           style={styles.tab}
         >
           {/* Badge alertes */}
-          {tab.id === 'alerts' && alertCount > 0 && (
+          {tab.id === "alerts" && alertCount > 0 && (
             // ✅ div → View, texte dans <Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{alertCount}</Text>
@@ -62,7 +64,7 @@ export const BottomNav = ({ active, onChange }) => {
 const styles = StyleSheet.create({
   // ✅ display:flex → flexDirection:'row' (flex est par défaut en RN)
   container: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     backgroundColor: Colors.surface,
@@ -71,29 +73,29 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
     paddingVertical: 6,
   },
   badge: {
-    position: 'absolute',
+    position: "absolute",
     top: 2,
     right: 18,
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: Colors.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
     borderColor: Colors.surface,
     zIndex: 1,
   },
   badgeText: {
     fontSize: 9,
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
   },
   icon: {
     fontSize: 22,
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 4,
   },
   labelActive: {
@@ -114,7 +116,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   activeIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -2,
     width: 20,
     height: 3,

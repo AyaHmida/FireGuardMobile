@@ -8,6 +8,14 @@
     "scheme": "fireguardmobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "deeplinks": {
+      "schemes": ["https", "http", "fireguardmobile"],
+      "urls": [
+        "https://localhost:8081/*",
+        "http://localhost:8081/*",
+        "fireguardmobile://accept-invitation"
+      ]
+    },
     "ios": {
       "supportsTablet": true
     },

@@ -1,15 +1,21 @@
 // export const BASE_URL = 'http://192.168.1.107:7182';
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
 export const BASE_URL =
-  Platform.OS === 'web'
-    ? 'http://localhost:7182' // ✅ navigateur
-    : 'http://192.168.1.107:7182'; // ✅ mobile (ton PC sur WiFi)
+  Platform.OS === "web"
+    ? "http://localhost:7182" // ✅ navigateur
+    : "http://192.168.1.107:7182"; // ✅ mobile (ton PC sur WiFi)
 // ─── Endpoints ───────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
   AUTH: {
     REGISTER: `${BASE_URL}/api/auth/register`,
     LOGIN: `${BASE_URL}/api/auth/login`,
+  },
+  FAMILY: {
+    MEMBERS: `${BASE_URL}/api/family/members`,
+    INVITE: `${BASE_URL}/api/family/invite`,
+    VALIDATE_TOKEN: `${BASE_URL}/api/family/validate-token`,
+    ACCEPT_INVITATION: `${BASE_URL}/api/family/accept-invitation`,
   },
 };
 
@@ -23,13 +29,13 @@ export const API_ENDPOINTS = {
  */
 export const apiCall = async (
   url,
-  method = 'GET',
+  method = "GET",
   body = null,
-  token = null
+  token = null,
 ) => {
   try {
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const options = { method, headers };
     if (body) options.body = JSON.stringify(body);
@@ -54,7 +60,7 @@ export const apiCall = async (
   } catch (err) {
     return {
       data: null,
-      error: 'Impossible de contacter le serveur. Vérifiez votre connexion.',
+      error: "Impossible de contacter le serveur. Vérifiez votre connexion.",
       status: 0,
     };
   }
