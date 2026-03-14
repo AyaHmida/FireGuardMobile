@@ -1,28 +1,11 @@
-// ═══════════════════════════════════════════════════════════════════
-//  familyService.js — Gestion des membres de famille
-//  Endpoints: GET /members | POST /invite | DELETE /members/:id
-//             GET /validate-token | POST /accept-invitation
-// ═══════════════════════════════════════════════════════════════════
-
 import { API_ENDPOINTS, apiCall } from "./api";
 
-// ─── GET /api/family/members ─────────────────────────────────────────
-/**
- * Récupère les membres actifs + invitations en attente
- * ⚠️  Requiert JWT (Occupant uniquement)
- *
- * Retourne FamilyListResponseDto:
- * {
- *   activeMembers:      [{ id, firstName, lastName, email, phoneNumber, isActive, createdAt }]
- *   pendingInvitations: [{ id, email, expiresAt, createdAt }]
- * }
- */
 const getFamilyMembers = async (token) => {
   const { data, error } = await apiCall(
     API_ENDPOINTS.FAMILY.MEMBERS,
     "GET",
     null,
-    token, // ← JWT dans Authorization header
+    token,
   );
 
   if (error) return { success: false, error };
@@ -111,7 +94,6 @@ const acceptInvitation = async (dto) => {
   return { success: true, message: data?.message };
 };
 
-// ─── Export ──────────────────────────────────────────────────────────
 export const familyService = {
   getFamilyMembers,
   inviteMember,

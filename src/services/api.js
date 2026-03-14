@@ -17,6 +17,9 @@ export const API_ENDPOINTS = {
     VALIDATE_TOKEN: `${BASE_URL}/api/family/validate-token`,
     ACCEPT_INVITATION: `${BASE_URL}/api/family/accept-invitation`,
   },
+  ZONES: {
+    MY_ZONES: `${BASE_URL}/api/zones/my-zones`,
+  },
 };
 
 // ─── Helper fetch générique ──────────────────────────────────────────
