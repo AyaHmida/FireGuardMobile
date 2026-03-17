@@ -12,7 +12,7 @@ import Toggle from "../components/Toggle";
 import { useAuth } from "../context/Authcontext";
 import { Colors } from "../theme/colors";
 
-export const ProfileScreen = ({ onBack, onLogout, onFamily }) => {
+export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
   const { user, logout } = useAuth();
 
   const [notifPush, setNotifPush] = useState(true);
@@ -156,26 +156,6 @@ export const ProfileScreen = ({ onBack, onLogout, onFamily }) => {
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>ACCÈS & URGENCE</Text>
           <View style={styles.linkSection}>
-            {/* Membres de famille — visible uniquement Occupant */}
-            {isOccupant && (
-              <TouchableOpacity
-                onPress={() => {
-                  if (onFamily) {
-                    onFamily();
-                  }
-                }}
-                activeOpacity={0.6}
-                style={[styles.linkRow, styles.rowBorder]}
-              >
-                <Text style={styles.rowIcon}>👨‍👩‍👧</Text>
-                <Text style={styles.rowLabel}>Membres de famille</Text>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Gérer</Text>
-                </View>
-                <Text style={styles.arrowText}>→</Text>
-              </TouchableOpacity>
-            )}
-
             <TouchableOpacity
               onPress={() => {}}
               activeOpacity={0.6}
@@ -187,7 +167,7 @@ export const ProfileScreen = ({ onBack, onLogout, onFamily }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => {}}
+              onPress={onChangePassword}
               activeOpacity={0.6}
               style={styles.linkRow}
             >
