@@ -9,13 +9,13 @@ import BottomNav from "./src/components/BottomNav";
 import AppStatusBar from "./src/components/StatusBar";
 import AcceptInvitationScreen from "./src/screens/AcceptInvitationScreen";
 import AlertsScreen from "./src/screens/AlertsScreen";
+import { ChangePasswordScreen } from "./src/screens/ChangePasswordScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
 import FamilyScreen from "./src/screens/FamilyScreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import RegisterScreen from "./src/screens/Registerscreen";
 import ZoneDetailScreen from "./src/screens/ZoneDetailScreen";
-
 function AppContent() {
   const [screen, setScreen] = useState("login");
   const [navTab, setNavTab] = useState("dashboard");
@@ -89,6 +89,7 @@ function AppContent() {
     setNavTab("dashboard");
   };
   const handleFamily = () => setScreen("family");
+  const handleChangePassword = () => setScreen("changePassword");
 
   const renderScreen = () => {
     // ── Écran d'acceptation d'invitation ──────────────────────────
@@ -115,7 +116,8 @@ function AppContent() {
           onBack={() => setScreen("login")}
         />
       );
-
+    if (screen === "changePassword")
+      return <ChangePasswordScreen onBack={() => setScreen("app")} />;
     if (screen === "login")
       return (
         <LoginScreen
@@ -135,7 +137,13 @@ function AppContent() {
       case "alerts":
         return <AlertsScreen onBack={handleBack} />;
       case "profile":
-        return <ProfileScreen onBack={handleBack} onLogout={handleLogout} />;
+        return (
+          <ProfileScreen
+            onBack={handleBack}
+            onLogout={handleLogout}
+            onChangePassword={handleChangePassword}
+          />
+        );
       case "family":
         return <FamilyScreen onBack={handleBack} />;
 
@@ -149,9 +157,11 @@ function AppContent() {
       <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       {isLoggedIn && <AppStatusBar />}
       <View style={styles.content}>{renderScreen()}</View>
-      {isLoggedIn && screen !== "zone" && (
-        <BottomNav active={navTab} onChange={handleNavTab} />
-      )}
+      {isLoggedIn &&
+        screen !== "zone" &&
+        screen !== "changePassword" && ( // ← AJOUTÉ : cacher BottomNav sur changePassword
+          <BottomNav active={navTab} onChange={handleNavTab} />
+        )}
     </SafeAreaView>
   );
 }
