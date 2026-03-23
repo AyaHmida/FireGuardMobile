@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,24 +11,24 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { useAuth } from '../context/Authcontext';
-import { Colors } from '../theme/colors';
+} from "react-native";
+import { useAuth } from "../context/Authcontext";
+import { Colors } from "../theme/colors";
 
 export const LoginScreen = ({ onLogin, onRegister }) => {
   // ── Récupère login + état depuis AuthContext ──────────────────────
   const { login, isLoading } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // ── Validation locale ─────────────────────────────────────────────
   const validate = () => {
-    if (!email.trim()) return 'Veuillez entrer votre email.';
-    if (!email.includes('@')) return 'Adresse email invalide.';
-    if (!password.trim()) return 'Veuillez entrer votre mot de passe.';
+    if (!email.trim()) return "Veuillez entrer votre email.";
+    if (!email.includes("@")) return "Adresse email invalide.";
+    if (!password.trim()) return "Veuillez entrer votre mot de passe.";
     return null;
   };
 
@@ -34,7 +36,7 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
   // Backend retourne AuthResponseDto:
   // { success, message, token, user: { id, firstName, lastName, email, role } }
   const handleLogin = async () => {
-    setError('');
+    setError("");
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -52,14 +54,14 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
       // "Incorrect email or password."
       // "Your account is awaiting validation by an administrator."
       // "Your account has been suspended."
-      setError(result.error || 'Échec de la connexion.');
+      setError(result.error || "Échec de la connexion.");
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         style={styles.scroll}
@@ -68,11 +70,41 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
       >
         {/* Logo */}
         <View style={styles.logoArea}>
-          <View style={styles.logoBox}>
-            <Text style={{ fontSize: 38 }}>🔥</Text>
+          <View
+            style={[
+              styles.logoBox,
+              {
+                background: undefined,
+                backgroundColor: undefined,
+                borderRadius: 18,
+                width: 80,
+                height: 80,
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: "#E24B4A",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 12,
+                elevation: 8,
+              },
+            ]}
+          >
+            <Image
+              source={require("../../assets/images/fireguard-icon.png")}
+              style={{ width: 60, height: 60 }}
+              resizeMode="contain"
+            />
           </View>
-          <Text style={styles.appName}>FireGuard</Text>
-          <Text style={styles.appSubtitle}>SYSTÈME ANTI-INCENDIE</Text>
+          <Text
+            style={[styles.appName, { color: "#E24B4A", fontWeight: "700" }]}
+          >
+            FireGuard
+          </Text>
+          <Text
+            style={[styles.appSubtitle, { color: "#a32d2d", letterSpacing: 3 }]}
+          >
+            SYSTÈME ANTI-INCENDIE
+          </Text>
         </View>
 
         {/* Form Card */}
@@ -86,7 +118,12 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL</Text>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>✉️</Text>
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color="#E24B4A"
+                style={styles.inputIcon}
+              />
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -104,7 +141,12 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>MOT DE PASSE</Text>
             <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>🔒</Text>
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color="#E24B4A"
+                style={styles.inputIcon}
+              />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
@@ -115,22 +157,31 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
                 autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                <Text style={{ fontSize: 16, paddingHorizontal: 4 }}>
-                  {showPass ? '🙈' : '👁️'}
-                </Text>
+                <Ionicons
+                  name={showPass ? "eye-off-outline" : "eye-outline"}
+                  size={18}
+                  color="#a32d2d"
+                  style={{ paddingHorizontal: 4 }}
+                />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Mot de passe oublié */}
-          <TouchableOpacity style={{ alignSelf: 'flex-end' }}>
+          <TouchableOpacity style={{ alignSelf: "flex-end" }}>
             <Text style={styles.forgotPass}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
 
           {/* Erreur (vient du backend) */}
-          {error !== '' && (
+          {error !== "" && (
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>⚠️ {error}</Text>
+              <Ionicons
+                name="warning-outline"
+                size={16}
+                color="#E24B4A"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
@@ -152,11 +203,11 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
         {/* Lien Register */}
         <TouchableOpacity
           onPress={onRegister}
-          style={{ alignItems: 'center', marginTop: 24 }}
+          style={{ alignItems: "center", marginTop: 24 }}
         >
           <Text style={styles.registerText}>
-            Pas encore de compte ?{' '}
-            <Text style={{ color: Colors.fire, fontWeight: '600' }}>
+            Pas encore de compte ?{" "}
+            <Text style={{ color: Colors.fire, fontWeight: "600" }}>
               S inscrire
             </Text>
           </Text>
@@ -164,7 +215,11 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
 
         {/* Security badge */}
         <View style={styles.securityBadge}>
-          <Text>🛡️</Text>
+          <MaterialCommunityIcons
+            name="shield-check-outline"
+            size={16}
+            color="#E24B4A"
+          />
           <Text style={styles.securityText}>
             Connexion sécurisée JWT • Chiffrement AES-256
           </Text>
@@ -180,7 +235,7 @@ const styles = StyleSheet.create({
   logoArea: {
     paddingTop: 80,
     paddingBottom: 40,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
   },
   logoBox: {
@@ -189,9 +244,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: Colors.fireDim,
     borderWidth: 2,
-    borderColor: Colors.fire + '40',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: Colors.fire + "40",
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: Colors.fire,
     shadowOpacity: 0.4,
     shadowRadius: 15,
@@ -200,7 +255,7 @@ const styles = StyleSheet.create({
   },
   appName: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: "800",
     color: Colors.text,
     letterSpacing: -0.5,
   },
@@ -214,13 +269,13 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 14,
   },
-  formTitle: { fontSize: 20, fontWeight: '700', color: Colors.text },
+  formTitle: { fontSize: 20, fontWeight: "700", color: Colors.text },
   formSubtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: -6 },
   inputGroup: { gap: 6 },
   inputLabel: {
     fontSize: 11,
     color: Colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   inputWrapper: {
@@ -228,40 +283,40 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     gap: 10,
   },
   inputIcon: { fontSize: 16 },
   input: { flex: 1, color: Colors.text, fontSize: 14, paddingVertical: 14 },
-  forgotPass: { fontSize: 13, color: Colors.fire, fontWeight: '600' },
+  forgotPass: { fontSize: 13, color: Colors.fire, fontWeight: "600" },
   errorBox: {
     backgroundColor: Colors.dangerDim,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: Colors.danger + '40',
+    borderColor: Colors.danger + "40",
   },
-  errorText: { fontSize: 12, color: Colors.danger, fontWeight: '600' },
+  errorText: { fontSize: 12, color: Colors.danger, fontWeight: "600" },
   submitBtn: {
     backgroundColor: Colors.fire,
     borderRadius: 14,
     paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: Colors.fire,
     shadowOpacity: 0.3,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  submitBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
   registerText: { fontSize: 13, color: Colors.textMuted },
   securityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: 16,
   },
