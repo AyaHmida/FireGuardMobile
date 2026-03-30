@@ -15,7 +15,8 @@ import {
 import { useAuth } from "../context/Authcontext";
 import { Colors } from "../theme/colors";
 
-export const LoginScreen = ({ onLogin, onRegister }) => {
+export const LoginScreen = ({ onLogin, onRegister, onForgotPassword }) => {
+  // ← prop ajoutée
   // ── Récupère login + état depuis AuthContext ──────────────────────
   const { login, isLoading } = useAuth();
 
@@ -32,9 +33,6 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
     return null;
   };
 
-  // ── Appel API login ───────────────────────────────────────────────
-  // Backend retourne AuthResponseDto:
-  // { success, message, token, user: { id, firstName, lastName, email, role } }
   const handleLogin = async () => {
     setError("");
     const validationError = validate();
@@ -46,14 +44,8 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
     const result = await login(email.trim(), password);
 
     if (result.success) {
-      // Token sauvegardé dans AsyncStorage par authService
-      // User sauvegardé dans AuthContext
       onLogin && onLogin();
     } else {
-      // Messages du backend:
-      // "Incorrect email or password."
-      // "Your account is awaiting validation by an administrator."
-      // "Your account has been suspended."
       setError(result.error || "Échec de la connexion.");
     }
   };
@@ -167,8 +159,11 @@ export const LoginScreen = ({ onLogin, onRegister }) => {
             </View>
           </View>
 
-          {/* Mot de passe oublié */}
-          <TouchableOpacity style={{ alignSelf: "flex-end" }}>
+          {/* Mot de passe oublié ── onForgotPassword branché ici */}
+          <TouchableOpacity
+            style={{ alignSelf: "flex-end" }}
+            onPress={onForgotPassword}
+          >
             <Text style={styles.forgotPass}>Mot de passe oublié ?</Text>
           </TouchableOpacity>
 
@@ -297,6 +292,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: Colors.danger + "40",
+    flexDirection: "row",
+    alignItems: "center",
   },
   errorText: { fontSize: 12, color: Colors.danger, fontWeight: "600" },
   submitBtn: {

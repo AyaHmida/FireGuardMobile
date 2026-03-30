@@ -3,13 +3,14 @@ import { Platform } from "react-native";
 
 export const BASE_URL =
   Platform.OS === "web"
-    ? "http://localhost:7182" // ✅ navigateur
-    : "http://192.168.1.107:7182"; // ✅ mobile (ton PC sur WiFi)
-// ─── Endpoints ───────────────────────────────────────────────────────
+    ? "http://localhost:7182" //  navigateur
+    : "http://192.168.1.107:7182"; //  mobile (ton PC sur WiFi)
 export const API_ENDPOINTS = {
   AUTH: {
     REGISTER: `${BASE_URL}/api/auth/register`,
     LOGIN: `${BASE_URL}/api/auth/login`,
+    FORGOT_PASSWORD: `${BASE_URL}/api/auth/forgot-password`,
+    RESET_PASSWORD: `${BASE_URL}/api/auth/reset-password`,
   },
   FAMILY: {
     MEMBERS: `${BASE_URL}/api/family/members`,
