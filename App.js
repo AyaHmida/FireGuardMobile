@@ -12,25 +12,40 @@ import AlertsScreen from "./src/screens/AlertsScreen";
 import { ChangePasswordScreen } from "./src/screens/ChangePasswordScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
 import FamilyScreen from "./src/screens/FamilyScreen";
+import { ForgotPasswordScreen } from "./src/screens/Forgotpasswordscreen"; // ← AJOUTÉ
 import LoginScreen from "./src/screens/LoginScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import RegisterScreen from "./src/screens/Registerscreen";
+import { ResetPasswordScreen } from "./src/screens/Resetpasswordscreen"; // ← AJOUTÉ
 import ZoneDetailScreen from "./src/screens/ZoneDetailScreen";
+
 function AppContent() {
   const [screen, setScreen] = useState("login");
   const [navTab, setNavTab] = useState("dashboard");
   const [selectedZone, setSelectedZone] = useState(null);
   const [invitationToken, setInvitationToken] = useState(null);
+  const [resetToken, setResetToken] = useState(null); // ← AJOUTÉ
 
-  // ── Extraire le token d'invitation de l'URL au chargement ──────────
+  // ── Extraire les tokens de l'URL au chargement ────────────────────
   useEffect(() => {
     const extractTokenFromURL = async () => {
       try {
         // Sur web
+        // ✅ APRÈS — vérifie le path d'abord
         if (Platform.OS === "web" && typeof window !== "undefined") {
+          const path = window.location.pathname; // ← AJOUTÉ
           const params = new URLSearchParams(window.location.search);
           const token = params.get("token");
+
           if (token) {
+            // /reset-password?token=XXX  →  reset password
+            if (path.includes("reset-password")) {
+              setResetToken(token);
+              setScreen("resetPassword");
+              return;
+            }
+
+            // /?token=XXX  →  invitation
             setInvitationToken(token);
             return;
           }
@@ -40,8 +55,19 @@ function AppContent() {
         if (Platform.OS !== "web") {
           const url = await Linking.getInitialURL();
           if (url != null) {
+            // fireguard://reset-password?token=XXX
+            if (url.includes("reset-password")) {
+              const tokenMatch = url.match(/token=([^&]+)/);
+              if (tokenMatch?.[1]) {
+                setResetToken(tokenMatch[1]);
+                setScreen("resetPassword");
+                return;
+              }
+            }
+
+            // Token d'invitation
             const tokenMatch = url.match(/token=([^&]+)/);
-            if (tokenMatch && tokenMatch[1]) {
+            if (tokenMatch?.[1]) {
               setInvitationToken(tokenMatch[1]);
             }
           }
@@ -53,11 +79,22 @@ function AppContent() {
 
     extractTokenFromURL();
 
-    // Écouter les changements de deep link (pour iOS/Android)
+    // Écouter les changements de deep link (iOS/Android)
     if (Platform.OS !== "web") {
       const subscription = Linking.addEventListener("url", ({ url }) => {
+        // Deep link reset password
+        if (url.includes("reset-password")) {
+          const tokenMatch = url.match(/token=([^&]+)/);
+          if (tokenMatch?.[1]) {
+            setResetToken(tokenMatch[1]);
+            setScreen("resetPassword");
+            return;
+          }
+        }
+
+        // Deep link invitation
         const tokenMatch = url.match(/token=([^&]+)/);
-        if (tokenMatch && tokenMatch[1]) {
+        if (tokenMatch?.[1]) {
           setInvitationToken(tokenMatch[1]);
         }
       });
@@ -66,9 +103,16 @@ function AppContent() {
     }
   }, []);
 
-  const isLoggedIn =
-    screen !== "login" && screen !== "register" && !invitationToken;
+  // ── Écrans hors session (pas de BottomNav, pas de StatusBar) ──────
+  const PUBLIC_SCREENS = [
+    "login",
+    "register",
+    "forgotPassword",
+    "resetPassword",
+  ];
+  const isLoggedIn = !PUBLIC_SCREENS.includes(screen) && !invitationToken;
 
+  // ── Handlers ──────────────────────────────────────────────────────
   const handleLogin = () => setScreen("app");
   const handleZone = (zone) => {
     setSelectedZone(zone);
@@ -83,7 +127,6 @@ function AppContent() {
     setNavTab(tab);
     setScreen("app");
   };
-
   const handleLogout = () => {
     setScreen("login");
     setNavTab("dashboard");
@@ -92,7 +135,7 @@ function AppContent() {
   const handleChangePassword = () => setScreen("changePassword");
 
   const renderScreen = () => {
-    // ── Écran d'acceptation d'invitation ──────────────────────────
+    // ── Invitation ─────────────────────────────────────────────────
     if (invitationToken) {
       return (
         <AcceptInvitationScreen
@@ -109,6 +152,16 @@ function AppContent() {
       );
     }
 
+    // ── Écrans publics ─────────────────────────────────────────────
+    if (screen === "login")
+      return (
+        <LoginScreen
+          onLogin={handleLogin}
+          onRegister={() => setScreen("register")}
+          onForgotPassword={() => setScreen("forgotPassword")} // ← minuscule, cohérent
+        />
+      );
+
     if (screen === "register")
       return (
         <RegisterScreen
@@ -116,15 +169,27 @@ function AppContent() {
           onBack={() => setScreen("login")}
         />
       );
-    if (screen === "changePassword")
-      return <ChangePasswordScreen onBack={() => setScreen("app")} />;
-    if (screen === "login")
+
+    if (screen === "forgotPassword")
+      // ← AJOUTÉ
+      return <ForgotPasswordScreen onBack={() => setScreen("login")} />;
+
+    if (screen === "resetPassword")
+      // ← AJOUTÉ
       return (
-        <LoginScreen
-          onLogin={handleLogin}
-          onRegister={() => setScreen("register")}
+        <ResetPasswordScreen
+          token={resetToken}
+          onBack={() => setScreen("login")}
+          onSuccess={() => {
+            setResetToken(null);
+            setScreen("login");
+          }}
         />
       );
+
+    // ── Écrans privés ──────────────────────────────────────────────
+    if (screen === "changePassword")
+      return <ChangePasswordScreen onBack={() => setScreen("app")} />;
 
     if (screen === "zone")
       return <ZoneDetailScreen zone={selectedZone} onBack={handleBack} />;
@@ -146,7 +211,6 @@ function AppContent() {
         );
       case "family":
         return <FamilyScreen onBack={handleBack} />;
-
       default:
         return <DashboardScreen onZone={handleZone} onAlert={handleAlert} />;
     }
@@ -157,11 +221,9 @@ function AppContent() {
       <StatusBar barStyle="light-content" backgroundColor={Colors.bg} />
       {isLoggedIn && <AppStatusBar />}
       <View style={styles.content}>{renderScreen()}</View>
-      {isLoggedIn &&
-        screen !== "zone" &&
-        screen !== "changePassword" && ( // ← AJOUTÉ : cacher BottomNav sur changePassword
-          <BottomNav active={navTab} onChange={handleNavTab} />
-        )}
+      {isLoggedIn && screen !== "zone" && screen !== "changePassword" && (
+        <BottomNav active={navTab} onChange={handleNavTab} />
+      )}
     </SafeAreaView>
   );
 }
