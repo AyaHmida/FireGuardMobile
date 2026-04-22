@@ -1,116 +1,277 @@
-import React, { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  Dimensions,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-} from 'react-native';
-import { Colors } from '../theme/colors';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Gauge from '../components/Gauge';
-import SparkLine from '../components/SparkLine';
-import PulseDot from '../components/PulseDot';
-import { ALERTS, READINGS_TEMP, READINGS_GAS, READINGS_SMOKE } from '../constants/mockData';
-import { getStatusColor, getStatusLabel, getTemperatureColor, getGasColor, getSmokeColor } from '../utils/helpers';
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import { LineChart } from "react-native-chart-kit";
+
+import Button from "../components/Button";
+import Card from "../components/Card";
+import Gauge from "../components/Gauge";
+import PulseDot from "../components/PulseDot";
+import { Colors } from "../theme/colors";
+
+import { ALERTS } from "../constants/mockData";
+
+import {
+  getGasColor,
+  getStatusColor,
+  getStatusLabel,
+  getTemperatureColor,
+} from "../utils/helpers";
+
+import { useAuth } from "../context/Authcontext";
+import { zoneService } from "../services/ZoneService";
+
+const screenWidth = Dimensions.get("window").width;
 
 export const ZoneDetailScreen = ({ zone, onBack }) => {
-  const [activeTab, setActiveTab] = useState('live');
-  const zoneAlerts = ALERTS.filter((a) => a.zone === zone.name);
+  const { token } = useAuth();
+
+  const [activeTab, setActiveTab] = useState("live");
+  const [realtime, setRealtime] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const [history, setHistory] = useState({
+    temperature: [],
+    gas: [],
+    humidity: [],
+  });
+
+  const historyRef = useRef({
+    temperature: [],
+    gas: [],
+    humidity: [],
+  });
+
+  const zoneAlerts = ALERTS.filter((a) => a.zone === zone?.name);
+
+  // ───────── FETCH REALTIME (SNAPSHOT MODE) ─────────
+  const loadRealtime = useCallback(async () => {
+    if (!zone?.id || !token) return;
+
+    const res = await zoneService.getZoneRealtime(zone.id, token);
+
+    if (res.success && res.data) {
+      const temp = Number(res.data.temperature ?? 0);
+      const gas = Number(res.data.gas ?? 0);
+      const hum = Number(res.data.humidity ?? 0);
+
+      setRealtime(res.data);
+
+      // 🔥 SNAPSHOT STABLE (pas de streaming)
+      const updated = {
+        temperature: [temp - 2, temp - 1, temp],
+        gas: [gas - 10, gas - 5, gas],
+        humidity: [hum - 3, hum - 1, hum],
+      };
+
+      historyRef.current = updated;
+      setHistory(updated);
+    }
+
+    setLoading(false);
+  }, [zone?.id, token]);
+
+  // ───────── INIT (NO INTERVAL → STABLE) ─────────
+  useEffect(() => {
+    loadRealtime();
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={styles.header}>
-        {/* ✅ Fix: TouchableOpacity avec <Text> dedans */}
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backBtnText}>←</Text>
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{zone.icon} {zone.name}</Text>
+          <Text style={styles.headerTitle}>
+            {zone?.icon} {zone?.name}
+          </Text>
+
           <View style={styles.headerSub}>
-            <PulseDot color={getStatusColor(zone.status)} size={6} />
+            <PulseDot color={getStatusColor(zone?.status)} size={6} />
             <Text style={styles.headerSubText}>
-              {' '}{getStatusLabel(zone.status)} · {zone.online}/{zone.sensors} capteurs en ligne
+              {getStatusLabel(zone?.status)} · {zone?.online}/{zone?.sensors}{" "}
+              capteurs
             </Text>
           </View>
         </View>
 
-        {/* ✅ Fix: Bouton STOP avec <Text> dedans */}
-        {zone.status === 'danger' && (
+        {zone?.status === "danger" && (
           <Button label="STOP" variant="danger" size="sm" onPress={() => {}} />
         )}
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Gauges */}
+        {/* LOADING */}
+        {loading && (
+          <View style={{ padding: 20, alignItems: "center" }}>
+            <ActivityIndicator size="small" color={Colors.fire} />
+            <Text style={{ marginTop: 10, color: Colors.textSecondary }}>
+              Chargement des données...
+            </Text>
+          </View>
+        )}
+
+        {/* GAUGES */}
         <Card>
           <Text style={styles.gaugesTitle}>VALEURS EN TEMPS RÉEL</Text>
+
           <View style={styles.gaugesRow}>
-            <Gauge value={zone.temp}  max={60}  color={getTemperatureColor(zone.temp)}  label="Température" unit="°C"  size={90} />
-            <Gauge value={zone.gas}   max={600} color={getGasColor(zone.gas)}            label="Gaz"         unit="ppm" size={90} />
-            <Gauge value={zone.smoke} max={100} color={getSmokeColor(zone.smoke)}        label="Fumée"       unit="ppm" size={90} />
+            <Gauge
+              value={parseFloat((realtime?.temperature ?? 0).toFixed(1))}
+              max={60}
+              color={getTemperatureColor(realtime?.temperature ?? 0)}
+              label="Température"
+              unit="°C"
+              size={90}
+            />
+
+            <Gauge
+              value={parseFloat((realtime?.gas ?? 0).toFixed(1))}
+              max={2000}
+              color={getGasColor(realtime?.gas ?? 0)}
+              label="Gaz"
+              unit="ppm"
+              size={90}
+            />
+
+            <Gauge
+              value={parseFloat((realtime?.humidity ?? 0).toFixed(1))}
+              max={100}
+              color={Colors.info}
+              label="Humidité"
+              unit="%"
+              size={90}
+            />
           </View>
         </Card>
 
-        {/* Tabs */}
         <View style={styles.tabRow}>
-          {['live', 'history'].map((tab) => (
+          {["live", "history"].map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
               style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {tab === 'live' ? '📊 Graphiques' : '📜 Historique'}
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab && styles.tabTextActive,
+                ]}
+              >
+                {tab === "live" ? "📊 Graphiques" : "📜 Historique"}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Tab Content */}
-        {activeTab === 'live' ? (
-          <>
-            {[
-              { label: 'Température (°C)', data: READINGS_TEMP,  color: Colors.warn },
-              { label: 'Gaz (ppm)',        data: READINGS_GAS,   color: zone.gas   > 100 ? Colors.danger : Colors.safe },
-              { label: 'Fumée (ppm)',      data: READINGS_SMOKE, color: zone.smoke > 30  ? Colors.danger : Colors.info },
-            ].map((chart, i) => (
-              <Card key={i}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartLabel}>{chart.label}</Text>
-                  <Text style={[styles.chartValue, { color: chart.color }]}>
-                    {chart.data[chart.data.length - 1]}
-                  </Text>
-                </View>
-                <SparkLine data={chart.data} color={chart.color} />
-                <View style={styles.chartFooter}>
-                  <Text style={styles.chartTime}>-30 min</Text>
-                  <Text style={styles.chartTime}>Maintenant</Text>
-                </View>
-              </Card>
-            ))}
-          </>
-        ) : (
+        {/* CHARTS */}
+        {activeTab === "live" &&
+          [
+            {
+              label: "Température (°C)",
+              value: realtime?.temperature ?? 0,
+              color: Colors.warn,
+              data: history.temperature,
+            },
+            {
+              label: "Gaz (ppm)",
+              value: realtime?.gas ?? 0,
+              color: Colors.danger,
+              data: history.gas,
+            },
+            {
+              label: "Humidité (%)",
+              value: realtime?.humidity ?? 0,
+              color: Colors.info,
+              data: history.humidity,
+            },
+          ].map((chart, i) => (
+            <Card key={i} style={{ marginBottom: 16, paddingBottom: 12 }}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartLabel}>{chart.label}</Text>
+                <Text style={[styles.chartValue, { color: chart.color }]}>
+                  {Number(chart.value).toFixed(1)}
+                </Text>
+              </View>
+
+              <LineChart
+                data={{
+                  labels: ["-2", "-1", "now"],
+                  datasets: [
+                    {
+                      data:
+                        chart.data.length >= 2
+                          ? chart.data
+                          : [chart.value - 0.1, chart.value],
+                      color: () => chart.color, // Ensure line uses the theme color
+                      strokeWidth: 3, // Thicker, professional line
+                    },
+                  ],
+                }}
+                width={screenWidth - 64} // Adjusted for Card padding
+                height={85} // Reduced height for streamlined proportion
+                withDots={false} // Clean appearance: no dots
+                withInnerLines={false} // No background grid
+                withOuterLines={false} // No axis borders
+                withVerticalLabels={false}
+                withHorizontalLabels={false}
+                chartConfig={{
+                  backgroundGradientFrom: "#ffffff", // Pure white background
+                  backgroundGradientTo: "#ffffff",
+                  fillShadowGradient: chart.color, // Color for the gradient fill
+                  fillShadowGradientOpacity: 0.2, // Subtle gradient under the curve
+                  decimalPlaces: 1,
+                  color: (opacity = 1) => chart.color,
+                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  propsForBackgroundLines: {
+                    strokeWidth: 0, // Hidden background lines
+                  },
+                }}
+                bezier // Smooth curves
+                style={{
+                  marginVertical: 8,
+                  borderRadius: 16,
+                  paddingRight: 0, // Eliminates padding meant for labels
+                }}
+              />
+
+              <View style={styles.chartFooter}>
+                <Text style={styles.chartTime}>Il y a 5 min</Text>
+                <Text style={styles.chartTime}>Maintenant</Text>
+              </View>
+            </Card>
+          ))}
+
+        {/* HISTORY */}
+        {activeTab === "history" && (
           <Card>
             {zoneAlerts.length === 0 ? (
-              <View style={styles.emptyAlerts}>
-                <Text style={styles.emptyText}>✅ Aucune alerte pour cette zone</Text>
-              </View>
+              <Text style={{ textAlign: "center" }}>✅ Aucune alerte</Text>
             ) : (
-              zoneAlerts.map((a, i) => (
-                <View key={a.id} style={[styles.historyRow, i < zoneAlerts.length - 1 && styles.historyRowBorder]}>
-                  <View style={[styles.historyDot, { backgroundColor: getStatusColor(a.level) }]} />
+              zoneAlerts.map((a) => (
+                <View key={a.id} style={styles.historyRow}>
+                  <View
+                    style={[
+                      styles.historyDot,
+                      { backgroundColor: getStatusColor(a.level) },
+                    ]}
+                  />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.historyType}>{a.type} — {a.value}</Text>
-                    <Text style={styles.historyTime}>{a.time}</Text>
-                  </View>
-                  <View style={[styles.historyChip, { backgroundColor: a.resolved ? Colors.safeDim : Colors.dangerDim }]}>
-                    <Text style={[styles.historyChipText, { color: a.resolved ? Colors.safe : Colors.danger }]}>
-                      {a.resolved ? 'Résolu' : 'Actif'}
+                    <Text style={styles.historyType}>
+                      {a.type} — {a.value}
                     </Text>
+                    <Text style={styles.historyTime}>{a.time}</Text>
                   </View>
                 </View>
               ))
@@ -118,82 +279,91 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
           </Card>
         )}
 
-        {/* Sensors List */}
-        <View>
-          <Text style={styles.sensorsTitle}>Capteurs</Text>
-          {[
-            { name: `MQ-2 Gaz — ${zone.name}`,      id: 'ESP-001', status: 'online', battery: 87 },
-            { name: `Flamme — ${zone.name}`,         id: 'ESP-002', status: 'online', battery: 62 },
-            { name: `Température — ${zone.name}`,    id: 'ESP-003', status: zone.online < zone.sensors ? 'offline' : 'online', battery: 34 },
-          ].slice(0, zone.sensors).map((s, i) => (
-            <Card key={i} style={{ marginBottom: 8 }}>
-              <View style={styles.sensorRow}>
-                <View style={[styles.sensorDot, {
-                  backgroundColor: s.status === 'online' ? Colors.safe : Colors.danger,
-                  shadowColor:     s.status === 'online' ? Colors.safe : Colors.danger,
-                }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sensorName}>{s.name}</Text>
-                  <Text style={styles.sensorId}>ID: {s.id}</Text>
-                </View>
-                <Text style={[styles.sensorBattery, { color: s.battery < 40 ? Colors.danger : Colors.textSecondary }]}>
-                  🔋 {s.battery}%
-                </Text>
-              </View>
-            </Card>
-          ))}
-        </View>
-
         <View style={{ height: 20 }} />
       </ScrollView>
     </View>
   );
 };
 
+// ───────── STYLES ─────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
+
   header: {
-    paddingHorizontal: 20, paddingVertical: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.bg,
+    flexDirection: "row",
+    padding: 16,
+    alignItems: "center",
   },
+
   backBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: Colors.surface, borderWidth: 1,
-    borderColor: Colors.border, alignItems: 'center', justifyContent: 'center',
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  backBtnText: { fontSize: 18, color: Colors.text, fontWeight: '600' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.text },
-  headerSub: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  headerSubText: { fontSize: 11, color: Colors.textSecondary },
-  content: { padding: 16, gap: 16 },
-  gaugesTitle: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, marginBottom: 16, letterSpacing: 1 },
-  gaugesRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  tabRow: { flexDirection: 'row', gap: 8 },
-  tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: Colors.card, alignItems: 'center' },
+
+  backBtnText: { fontSize: 18 },
+
+  headerTitle: { fontSize: 16, fontWeight: "bold" },
+
+  headerSub: { flexDirection: "row", alignItems: "center" },
+
+  headerSubText: { fontSize: 12, color: Colors.textSecondary },
+
+  content: { padding: 16 },
+
+  gaugesTitle: { fontWeight: "bold", marginBottom: 10 },
+
+  gaugesRow: { flexDirection: "row", justifyContent: "space-around" },
+
+  tabRow: { flexDirection: "row", marginVertical: 10 },
+
+  tabBtn: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: "#eee",
+    alignItems: "center",
+    borderRadius: 8,
+  },
+
   tabBtnActive: { backgroundColor: Colors.fire },
-  tabText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
-  tabTextActive: { color: '#fff' },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  chartLabel: { fontSize: 13, fontWeight: '600', color: Colors.text },
-  chartValue: { fontSize: 18, fontWeight: '800' },
-  chartFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  chartTime: { fontSize: 10, color: Colors.textMuted },
-  emptyAlerts: { padding: 24, alignItems: 'center' },
-  emptyText: { fontSize: 13, color: Colors.textSecondary },
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  historyRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
-  historyDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  historyType: { fontSize: 13, color: Colors.text, fontWeight: '600' },
-  historyTime: { fontSize: 11, color: Colors.textSecondary },
-  historyChip: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
-  historyChipText: { fontSize: 10, fontWeight: '600' },
-  sensorsTitle: { fontSize: 14, fontWeight: '700', color: Colors.text, marginBottom: 10 },
-  sensorRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sensorDot: { width: 8, height: 8, borderRadius: 4, shadowOpacity: 0.6, shadowRadius: 4, shadowOffset: { width: 0, height: 0 }, elevation: 3 },
-  sensorName: { fontSize: 13, fontWeight: '600', color: Colors.text },
-  sensorId: { fontSize: 11, color: Colors.textSecondary },
-  sensorBattery: { fontSize: 11 },
+
+  tabText: { fontSize: 13 },
+
+  tabTextActive: { color: "#fff" },
+
+  chartHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+
+  chartLabel: { fontWeight: "600" },
+
+  chartValue: { fontSize: 18, fontWeight: "bold" },
+
+  chartFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  chartTime: { fontSize: 10, color: "#999" },
+
+  historyRow: {
+    flexDirection: "row",
+    paddingVertical: 10,
+  },
+
+  historyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+
+  historyType: { fontWeight: "600" },
+
+  historyTime: { fontSize: 11, color: "#777" },
 });
 
 export default ZoneDetailScreen;

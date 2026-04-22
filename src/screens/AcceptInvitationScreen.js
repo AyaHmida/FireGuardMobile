@@ -1,6 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -69,7 +71,6 @@ export const AcceptInvitationScreen = ({
     setError("");
     setLoading(true);
 
-    // Validations simples
     if (!firstName.trim() || !lastName.trim()) {
       setError("Le prénom et le nom sont requis.");
       setLoading(false);
@@ -104,7 +105,6 @@ export const AcceptInvitationScreen = ({
       });
 
       if (result.success) {
-        // ✅ Succès
         setSuccess(true);
         setTimeout(() => {
           if (onInvitationAccepted) {
@@ -124,6 +124,40 @@ export const AcceptInvitationScreen = ({
     }
   };
 
+  // ── Composant champ input réutilisable ────────────────────────────
+  const InputField = ({
+    iconName,
+    placeholder,
+    value,
+    onChangeText,
+    secureTextEntry,
+    keyboardType,
+    right,
+    disabled,
+  }) => (
+    <View style={[styles.inputWrapper, disabled && styles.disabledInput]}>
+      <Ionicons
+        name={iconName}
+        size={18}
+        color={Colors.text2}
+        style={styles.inputIcon}
+      />
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={Colors.textMuted}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType || "default"}
+        autoCapitalize="none"
+        autoCorrect={false}
+        editable={!disabled}
+        style={[styles.input, disabled && { color: Colors.text2 }]}
+      />
+      {right}
+    </View>
+  );
+
   // ── Affichage: Validation du token ────────────────────────────────
   if (validating) {
     return (
@@ -138,7 +172,7 @@ export const AcceptInvitationScreen = ({
         >
           <View style={styles.logoArea}>
             <View style={styles.logoBox}>
-              <Text style={{ fontSize: 38 }}>🔄</Text>
+              <Ionicons name="sync-outline" size={38} color={Colors.fire} />
             </View>
             <Text style={styles.appName}>Vérification...</Text>
             <Text style={styles.appSubtitle}>Veuillez patienter</Text>
@@ -150,33 +184,6 @@ export const AcceptInvitationScreen = ({
       </KeyboardAvoidingView>
     );
   }
-
-  // ── Composant champ input réutilisable ─────────────────────────────
-  const InputField = ({
-    icon,
-    placeholder,
-    value,
-    onChangeText,
-    secureTextEntry,
-    keyboardType,
-    right,
-  }) => (
-    <View style={styles.inputWrapper}>
-      <Text style={styles.inputIcon}>{icon}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.textMuted}
-        secureTextEntry={secureTextEntry}
-        keyboardType={keyboardType || "default"}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={styles.input}
-      />
-      {right}
-    </View>
-  );
 
   // ── Affichage: Lien invalide ──────────────────────────────────────
   if (
@@ -195,13 +202,13 @@ export const AcceptInvitationScreen = ({
         >
           <View style={styles.header}>
             <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
-              <Text style={styles.backBtnText}>←</Text>
+              <Ionicons name="arrow-back" size={20} color={Colors.text} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.logoArea}>
-            <View style={styles.logoBox}>
-              <Text style={{ fontSize: 38 }}>❌</Text>
+            <View style={[styles.logoBox, styles.logoBoxError]}>
+              <Ionicons name="close" size={38} color="#ef4444" />
             </View>
             <Text style={styles.appName}>Lien Invalide</Text>
             <Text style={styles.appSubtitle}>ACCÈS REFUSÉ</Text>
@@ -210,11 +217,17 @@ export const AcceptInvitationScreen = ({
           <View style={styles.formCard}>
             <Text style={styles.formTitle}>Invitation Expirée</Text>
             <Text style={styles.formSubtitle}>
-              Le lien d'accès a expiré ou est invalide.
+              Le lien d accès a expiré ou est invalide.
             </Text>
 
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>
+              <Ionicons
+                name="warning-outline"
+                size={14}
+                color="#ef4444"
+                style={{ marginRight: 6, marginTop: 1 }}
+              />
+              <Text style={[styles.errorText, { flex: 1 }]}>
                 {error || "Le lien d'invitation est invalide ou a expiré."}
               </Text>
             </View>
@@ -232,7 +245,7 @@ export const AcceptInvitationScreen = ({
     );
   }
 
-  // ── Affichage: Formulaire d'acceptation ───────────────────────────
+  // ── Affichage: Formulaire d'acceptation ──────────────────────────
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -246,22 +259,52 @@ export const AcceptInvitationScreen = ({
         {/* Header retour */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>←</Text>
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Logo */}
         <View style={styles.logoArea}>
-          <View style={styles.logoBox}>
-            <Text style={{ fontSize: 38 }}>🔥</Text>
+          <View
+            style={[
+              styles.logoBox,
+              {
+                background: undefined,
+                backgroundColor: undefined,
+                borderRadius: 18,
+                width: 80,
+                height: 80,
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: "#E24B4A",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 12,
+                elevation: 8,
+              },
+            ]}
+          >
+            <Image
+              source={require("../../assets/images/fireguard-icon.png")}
+              style={{ width: 60, height: 60 }}
+              resizeMode="contain"
+            />
           </View>
-          <Text style={styles.appName}>FireGuard</Text>
-          <Text style={styles.appSubtitle}>CRÉER UN COMPTE</Text>
+          <Text
+            style={[styles.appName, { color: "#E24B4A", fontWeight: "700" }]}
+          >
+            FireGuard
+          </Text>
+          <Text
+            style={[styles.appSubtitle, { color: "#a32d2d", letterSpacing: 3 }]}
+          >
+            SYSTÈME ANTI-INCENDIE
+          </Text>
         </View>
 
         {/* Formulaire */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Accepter l'invitation</Text>
+          <Text style={styles.formTitle}>Accepter l invitation</Text>
           <Text style={styles.formSubtitle}>
             Complétez votre profil pour accéder au système
           </Text>
@@ -269,12 +312,13 @@ export const AcceptInvitationScreen = ({
           {/* Email (lecture seule) */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL</Text>
-            <View style={[styles.inputWrapper, styles.disabledInput]}>
-              <Text style={styles.inputIcon}>✉️</Text>
-              <Text style={[styles.input, { color: Colors.text2 }]}>
-                {email}
-              </Text>
-            </View>
+            <InputField
+              iconName="mail-outline"
+              placeholder=""
+              value={email}
+              onChangeText={() => {}}
+              disabled
+            />
           </View>
 
           {/* Prénom + Nom */}
@@ -282,7 +326,7 @@ export const AcceptInvitationScreen = ({
             <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
               <Text style={styles.inputLabel}>PRÉNOM</Text>
               <InputField
-                icon="👤"
+                iconName="person-outline"
                 placeholder="Jean"
                 value={firstName}
                 onChangeText={setFirstName}
@@ -291,7 +335,7 @@ export const AcceptInvitationScreen = ({
             <View style={[styles.inputGroup, { flex: 1 }]}>
               <Text style={styles.inputLabel}>NOM</Text>
               <InputField
-                icon="👤"
+                iconName="person-outline"
                 placeholder="Martin"
                 value={lastName}
                 onChangeText={setLastName}
@@ -303,7 +347,7 @@ export const AcceptInvitationScreen = ({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>TÉLÉPHONE (optionnel)</Text>
             <InputField
-              icon="📞"
+              iconName="call-outline"
               placeholder="+33 6 12 34 56 78"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
@@ -315,7 +359,7 @@ export const AcceptInvitationScreen = ({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>MOT DE PASSE</Text>
             <InputField
-              icon="🔒"
+              iconName="lock-closed-outline"
               placeholder="••••••••"
               value={password}
               onChangeText={setPassword}
@@ -323,10 +367,13 @@ export const AcceptInvitationScreen = ({
               right={
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
+                  style={{ paddingHorizontal: 4 }}
                 >
-                  <Text style={{ fontSize: 16, paddingHorizontal: 4 }}>
-                    {showPassword ? "🙈" : "👁️"}
-                  </Text>
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={18}
+                    color={Colors.text2}
+                  />
                 </TouchableOpacity>
               }
             />
@@ -337,7 +384,7 @@ export const AcceptInvitationScreen = ({
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>CONFIRMER MOT DE PASSE</Text>
             <InputField
-              icon="🔒"
+              iconName="lock-closed-outline"
               placeholder="••••••••"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -345,10 +392,15 @@ export const AcceptInvitationScreen = ({
               right={
                 <TouchableOpacity
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ paddingHorizontal: 4 }}
                 >
-                  <Text style={{ fontSize: 16, paddingHorizontal: 4 }}>
-                    {showConfirmPassword ? "🙈" : "👁️"}
-                  </Text>
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={18}
+                    color={Colors.text2}
+                  />
                 </TouchableOpacity>
               }
             />
@@ -356,24 +408,42 @@ export const AcceptInvitationScreen = ({
 
           {/* Info validation */}
           <View style={styles.infoBox}>
-            <Text style={styles.infoText}>
-              ℹ️ Après validation, votre compte sera activé automatiquement.
-              Vous pourrez accéder à tous les systèmes.
+            <Ionicons
+              name="information-circle-outline"
+              size={14}
+              color="#3b82f6"
+              style={{ marginRight: 6, marginTop: 1 }}
+            />
+            <Text style={[styles.infoText, { flex: 1 }]}>
+              Après validation, votre compte sera activé automatiquement. Vous
+              pourrez accéder à tous les systèmes.
             </Text>
           </View>
 
           {/* Erreur API ou validation */}
           {error !== "" && (
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>⚠️ {error}</Text>
+              <Ionicons
+                name="warning-outline"
+                size={14}
+                color="#ef4444"
+                style={{ marginRight: 6, marginTop: 1 }}
+              />
+              <Text style={[styles.errorText, { flex: 1 }]}>{error}</Text>
             </View>
           )}
 
           {/* Succès */}
           {success && (
             <View style={styles.successBox}>
-              <Text style={styles.successText}>
-                ✅ Compte créé avec succès ! Redirection...
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={14}
+                color="#22c55e"
+                style={{ marginRight: 6, marginTop: 1 }}
+              />
+              <Text style={[styles.successText, { flex: 1 }]}>
+                Compte créé avec succès ! Redirection...
               </Text>
             </View>
           )}
@@ -388,7 +458,15 @@ export const AcceptInvitationScreen = ({
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.submitBtnText}>✅ Créer mon compte</Text>
+              <View style={styles.submitBtnInner}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color="#fff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.submitBtnText}>Créer mon compte</Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -399,15 +477,19 @@ export const AcceptInvitationScreen = ({
           style={{ alignItems: "center", marginTop: 20 }}
         >
           <Text style={styles.loginText}>
-            Pas d'invitation ?{" "}
+            Pas d invitation ?{" "}
             <Text style={{ color: Colors.fire, fontWeight: "600" }}>
-              Contacter l'administrateur
+              Contacter l administrateur
             </Text>
           </Text>
         </TouchableOpacity>
 
         <View style={styles.securityBadge}>
-          <Text>🛡️</Text>
+          <Ionicons
+            name="shield-checkmark-outline"
+            size={14}
+            color={Colors.text2}
+          />
           <Text style={styles.securityText}>
             Connexion sécurisée JWT • Chiffrement AES-256
           </Text>
@@ -434,7 +516,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnText: { fontSize: 18, color: Colors.text, fontWeight: "600" },
 
   logoArea: {
     paddingTop: 24,
@@ -451,6 +532,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.fire,
     alignItems: "center",
     justifyContent: "center",
+  },
+  logoBoxError: {
+    borderColor: "#ef4444",
   },
   appName: {
     fontSize: 24,
@@ -510,7 +594,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   inputIcon: {
-    fontSize: 18,
+    marginRight: 2,
   },
   input: {
     flex: 1,
@@ -519,7 +603,7 @@ const styles = StyleSheet.create({
   },
   inputHint: {
     fontSize: 11,
-    color: Colors.text3,
+    color: Colors.text2,
     marginTop: 6,
   },
 
@@ -528,6 +612,8 @@ const styles = StyleSheet.create({
   },
 
   infoBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     backgroundColor: "rgba(59, 130, 246, 0.1)",
     borderRadius: 10,
     borderWidth: 1,
@@ -542,6 +628,8 @@ const styles = StyleSheet.create({
   },
 
   errorBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     backgroundColor: "rgba(239, 68, 68, 0.1)",
     borderRadius: 10,
     borderWidth: 1,
@@ -556,6 +644,8 @@ const styles = StyleSheet.create({
   },
 
   successBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     backgroundColor: "rgba(34, 197, 94, 0.1)",
     borderRadius: 10,
     borderWidth: 1,
@@ -576,6 +666,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
+  },
+  submitBtnInner: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   submitBtnText: {
     color: "#fff",

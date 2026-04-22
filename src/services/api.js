@@ -1,10 +1,12 @@
 // export const BASE_URL = 'http://192.168.1.107:7182';
-import { Platform } from "react-native";
+import Constants from "expo-constants";
 
-export const BASE_URL =
-  Platform.OS === "web"
-    ? "http://localhost:7182" //  navigateur
-    : "http://192.168.1.107:7182"; //  mobile (ton PC sur WiFi)
+// récupère l'IP locale actuelle (dev seulement)
+const LOCAL_IP = Constants.expoConfig?.hostUri
+  ? Constants.expoConfig.hostUri.split(":")[0]
+  : "192.168.1.107"; // fallback si pas Expo
+
+export const BASE_URL = `http://${LOCAL_IP}:7182`;
 export const API_ENDPOINTS = {
   AUTH: {
     REGISTER: `${BASE_URL}/api/auth/register`,
@@ -20,6 +22,7 @@ export const API_ENDPOINTS = {
   },
   ZONES: {
     MY_ZONES: `${BASE_URL}/api/zones/my-zones`,
+    REALTIME: (zoneId) => `${BASE_URL}/api/zones/zone/${zoneId}/realtime`,
   },
 };
 

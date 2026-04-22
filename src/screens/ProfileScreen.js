@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useState } from "react";
 import {
@@ -33,7 +34,6 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
     ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
     : "Utilisateur";
 
-  // ✅ Vérifie role sans case-sensitive
   const isOccupant = user?.role?.toLowerCase() === "occupant";
 
   return (
@@ -41,7 +41,7 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
       {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>←</Text>
+          <Ionicons name="arrow-back" size={20} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mon Profil</Text>
       </View>
@@ -54,11 +54,20 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
           </View>
           <Text style={styles.name}>{fullName}</Text>
           <Text style={styles.emailText}>{user?.email ?? ""}</Text>
+
+          {/* Role badge */}
           <View style={styles.roleBadge}>
+            <Ionicons
+              name={user?.role === "Admin" ? "shield-checkmark" : "home"}
+              size={13}
+              color={Colors.fire}
+            />
             <Text style={styles.roleText}>
-              {user?.role === "Admin" ? "🛡️ Administrateur" : "🏠 Occupant"}
+              {user?.role === "Admin" ? "Administrateur" : "Occupant"}
             </Text>
           </View>
+
+          {/* Active badge */}
           <View
             style={[
               styles.activeBadge,
@@ -69,15 +78,18 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
               },
             ]}
           >
+            <Ionicons
+              name={user?.isActive ? "checkmark-circle" : "time"}
+              size={12}
+              color={user?.isActive ? Colors.safe : Colors.danger}
+            />
             <Text
               style={[
                 styles.activeText,
                 { color: user?.isActive ? Colors.safe : Colors.danger },
               ]}
             >
-              {user?.isActive
-                ? "✅ Compte actif"
-                : "⏳ En attente de validation"}
+              {user?.isActive ? "Compte actif" : "En attente de validation"}
             </Text>
           </View>
         </View>
@@ -86,14 +98,23 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
           <Card style={{ paddingHorizontal: 0, paddingVertical: 0 }}>
-            {/* Toggle dans View = ok, pas de TouchableOpacity imbriqué */}
             <View style={[styles.row, styles.rowBorder]}>
-              <Text style={styles.rowIcon}>📲</Text>
+              <Ionicons
+                name="notifications"
+                size={18}
+                color={Colors.textSecondary}
+                style={styles.rowIcon}
+              />
               <Text style={styles.rowLabel}>Notifications Push</Text>
               <Toggle value={notifPush} onChange={setNotifPush} />
             </View>
             <View style={styles.row}>
-              <Text style={styles.rowIcon}>✉️</Text>
+              <Ionicons
+                name="mail"
+                size={18}
+                color={Colors.textSecondary}
+                style={styles.rowIcon}
+              />
               <Text style={styles.rowLabel}>Alertes par Email</Text>
               <Toggle value={notifEmail} onChange={setNotifEmail} />
             </View>
@@ -106,7 +127,10 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
           <Card style={{ paddingHorizontal: 0, paddingVertical: 0 }}>
             <View style={[styles.sliderBlock, styles.rowBorder]}>
               <View style={styles.sliderHeader}>
-                <Text style={styles.sliderLabel}>🌡️ Température</Text>
+                <View style={styles.sliderLabelRow}>
+                  <Ionicons name="thermometer" size={16} color={Colors.warn} />
+                  <Text style={styles.sliderLabel}>Température</Text>
+                </View>
                 <Text style={[styles.sliderValue, { color: Colors.warn }]}>
                   {tempThresh}°C
                 </Text>
@@ -125,9 +149,13 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
                 <Text style={styles.rangeText}>60°C</Text>
               </View>
             </View>
+
             <View style={styles.sliderBlock}>
               <View style={styles.sliderHeader}>
-                <Text style={styles.sliderLabel}>⚗️ Gaz (ppm)</Text>
+                <View style={styles.sliderLabelRow}>
+                  <Ionicons name="flask" size={16} color={Colors.danger} />
+                  <Text style={styles.sliderLabel}>Gaz (ppm)</Text>
+                </View>
                 <Text style={[styles.sliderValue, { color: Colors.danger }]}>
                   {gasThresh} ppm
                 </Text>
@@ -150,9 +178,7 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
           </Card>
         </View>
 
-        {/* ── Accès & Urgence ──────────────────────────────────────────
-            ✅ FIX: PAS de Card ici — les TouchableOpacity fonctionnent
-            directement sans être imbriqués dans un autre composant   */}
+        {/* ── Accès & Urgence ── */}
         <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>ACCÈS & URGENCE</Text>
           <View style={styles.linkSection}>
@@ -161,9 +187,18 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
               activeOpacity={0.6}
               style={[styles.linkRow, styles.rowBorder]}
             >
-              <Text style={styles.rowIcon}>🚨</Text>
+              <Ionicons
+                name="alert-circle"
+                size={18}
+                color={Colors.danger}
+                style={styles.rowIcon}
+              />
               <Text style={styles.rowLabel}>Contacts d urgence</Text>
-              <Text style={styles.arrowText}>→</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={Colors.textSecondary}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -171,9 +206,18 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
               activeOpacity={0.6}
               style={styles.linkRow}
             >
-              <Text style={styles.rowIcon}>🔐</Text>
+              <Ionicons
+                name="lock-closed"
+                size={18}
+                color={Colors.textSecondary}
+                style={styles.rowIcon}
+              />
               <Text style={styles.rowLabel}>Changer le mot de passe</Text>
-              <Text style={styles.arrowText}>→</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={Colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -184,7 +228,7 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
           activeOpacity={0.85}
           style={styles.logoutBtn}
         >
-          <Text style={styles.logoutIcon}>🚪</Text>
+          <Ionicons name="log-out" size={20} color={Colors.danger} />
           <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
 
@@ -197,7 +241,6 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
-  // ── Header ──────────────────────────────────────────────────────────
   header: {
     paddingHorizontal: 20,
     paddingVertical: 14,
@@ -218,7 +261,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnText: { fontSize: 18, color: Colors.text, fontWeight: "600" },
   headerTitle: { fontSize: 17, fontWeight: "700", color: Colors.text },
 
   content: { padding: 20, gap: 20 },
@@ -244,6 +286,9 @@ const styles = StyleSheet.create({
   name: { fontSize: 18, fontWeight: "700", color: Colors.text },
   emailText: { fontSize: 13, color: Colors.textSecondary },
   roleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: Colors.fireDim,
     borderWidth: 1,
     borderColor: Colors.fire + "40",
@@ -252,7 +297,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   roleText: { fontSize: 12, color: Colors.fire, fontWeight: "600" },
-  activeBadge: { borderRadius: 10, paddingHorizontal: 14, paddingVertical: 4 },
+  activeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
   activeText: { fontSize: 11, fontWeight: "600" },
 
   // ── Sections ────────────────────────────────────────────────────────
@@ -264,7 +316,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // Rows dans Card (non-cliquables)
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -273,10 +324,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
-  rowIcon: { fontSize: 18, width: 24, textAlign: "center" },
+  rowIcon: { width: 24, alignItems: "center" },
   rowLabel: { flex: 1, fontSize: 14, color: Colors.text, fontWeight: "500" },
 
-  // ✅ Section ACCÈS — View avec bordure, pas de Card
   linkSection: {
     backgroundColor: Colors.card,
     borderRadius: 16,
@@ -292,22 +342,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     backgroundColor: Colors.card,
   },
-  badge: {
-    backgroundColor: Colors.fireDim,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginRight: 4,
-  },
-  badgeText: { fontSize: 10, color: Colors.fire, fontWeight: "700" },
-  arrowText: { fontSize: 16, color: Colors.textSecondary },
 
   // ── Sliders ─────────────────────────────────────────────────────────
   sliderBlock: { paddingHorizontal: 16, paddingVertical: 14 },
   sliderHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
+  },
+  sliderLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   sliderLabel: { fontSize: 14, color: Colors.text },
   sliderValue: { fontSize: 14, fontWeight: "700" },
@@ -330,7 +377,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.danger + "30",
   },
-  logoutIcon: { fontSize: 18 },
   logoutText: { fontSize: 15, fontWeight: "700", color: Colors.danger },
 });
 

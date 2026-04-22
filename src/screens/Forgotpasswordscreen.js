@@ -19,19 +19,15 @@ export const ForgotPasswordScreen = ({ onBack }) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState(false); // ✅ email envoyé avec succès
+  const [sent, setSent] = useState(false); 
 
-  // ── Validation locale ─────────────────────────────────────────────
   const validate = () => {
     if (!email.trim()) return "Veuillez entrer votre email.";
     if (!email.includes("@")) return "Adresse email invalide.";
     return null;
   };
 
-  // ── Appel API ─────────────────────────────────────────────────────
-  // POST /api/auth/forgot-password
-  // Body : { email }
-  // Backend répond toujours 200 (sécurité : ne révèle pas si l'email existe)
+  
   const handleSubmit = async () => {
     setError("");
     const validationError = validate();
