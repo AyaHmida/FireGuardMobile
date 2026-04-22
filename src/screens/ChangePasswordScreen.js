@@ -1,12 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useAuth } from "../context/Authcontext";
 import { BASE_URL, apiCall } from "../services/api";
@@ -70,11 +71,10 @@ export const ChangePasswordScreen = ({ onBack }) => {
     if (apiError) {
       setError(apiError);
     } else {
-      setSuccess("Mot de passe modifié avec succès ! 🎉");
+      setSuccess("Mot de passe modifié avec succès !");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      // Retour automatique après 2s
       setTimeout(() => onBack(), 2000);
     }
   };
@@ -102,7 +102,7 @@ export const ChangePasswordScreen = ({ onBack }) => {
       {/* ── Header ─────────────────────────────────────────────── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>←</Text>
+          <Ionicons name="arrow-back" size={18} color={Colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Changer le mot de passe</Text>
       </View>
@@ -110,7 +110,7 @@ export const ChangePasswordScreen = ({ onBack }) => {
       {/* ── Icône ────────────────────────────────────────────── */}
       <View style={styles.iconSection}>
         <View style={styles.iconCircle}>
-          <Text style={{ fontSize: 36 }}>🔐</Text>
+          <Ionicons name="lock-closed" size={36} color={Colors.fire} />
         </View>
         <Text style={styles.iconDesc}>
           Votre mot de passe doit contenir au moins 8 caractères,{"\n"}
@@ -121,12 +121,26 @@ export const ChangePasswordScreen = ({ onBack }) => {
       {/* ── Erreur / Succès ───────────────────────────────────── */}
       {error !== "" && (
         <View style={styles.errorBox}>
-          <Text style={styles.errorText}>⚠️ {error}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={14}
+              color={Colors.danger}
+            />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
         </View>
       )}
       {success !== "" && (
         <View style={styles.successBox}>
-          <Text style={styles.successText}>{success}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={14}
+              color={Colors.safe}
+            />
+            <Text style={styles.successText}>{success}</Text>
+          </View>
         </View>
       )}
 
@@ -136,7 +150,12 @@ export const ChangePasswordScreen = ({ onBack }) => {
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Mot de passe actuel</Text>
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>🔒</Text>
+            <Ionicons
+              name="lock-closed-outline"
+              size={16}
+              color={Colors.text}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Votre mot de passe actuel"
@@ -148,7 +167,11 @@ export const ChangePasswordScreen = ({ onBack }) => {
               autoCorrect={false}
             />
             <TouchableOpacity onPress={() => setShowCurrent(!showCurrent)}>
-              <Text style={styles.eyeBtn}>{showCurrent ? "🙈" : "👁️"}</Text>
+              <Ionicons
+                name={showCurrent ? "eye-off" : "eye"}
+                size={18}
+                color={Colors.text}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -157,7 +180,12 @@ export const ChangePasswordScreen = ({ onBack }) => {
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>Nouveau mot de passe</Text>
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputIcon}>🔑</Text>
+            <Ionicons
+              name="key-outline"
+              size={16}
+              color={Colors.text}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Min. 8 car., majuscule, chiffre, spécial"
@@ -169,7 +197,11 @@ export const ChangePasswordScreen = ({ onBack }) => {
               autoCorrect={false}
             />
             <TouchableOpacity onPress={() => setShowNew(!showNew)}>
-              <Text style={styles.eyeBtn}>{showNew ? "🙈" : "👁️"}</Text>
+              <Ionicons
+                name={showNew ? "eye-off" : "eye"}
+                size={18}
+                color={Colors.text}
+              />
             </TouchableOpacity>
           </View>
 
@@ -180,10 +212,7 @@ export const ChangePasswordScreen = ({ onBack }) => {
                 <View
                   style={[
                     styles.strengthFill,
-                    {
-                      width: strength.width,
-                      backgroundColor: strength.color,
-                    },
+                    { width: strength.width, backgroundColor: strength.color },
                   ]}
                 />
               </View>
@@ -209,7 +238,7 @@ export const ChangePasswordScreen = ({ onBack }) => {
                     { color: rule.ok ? Colors.safe : Colors.textMuted },
                   ]}
                 >
-                  {rule.ok ? "✅" : "○"} {rule.text}
+                  {rule.ok ? "" : "○"} {rule.text}
                 </Text>
               ))}
             </View>
@@ -230,7 +259,12 @@ export const ChangePasswordScreen = ({ onBack }) => {
               },
             ]}
           >
-            <Text style={styles.inputIcon}>✅</Text>
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={16}
+              color={Colors.text}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Répéter le nouveau mot de passe"
@@ -242,10 +276,13 @@ export const ChangePasswordScreen = ({ onBack }) => {
               autoCorrect={false}
             />
             <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)}>
-              <Text style={styles.eyeBtn}>{showConfirm ? "🙈" : "👁️"}</Text>
+              <Ionicons
+                name={showConfirm ? "eye-off" : "eye"}
+                size={18}
+                color={Colors.text}
+              />
             </TouchableOpacity>
           </View>
-          {/* Match indicator */}
           {confirmPassword.length > 0 && (
             <Text
               style={{
@@ -256,8 +293,8 @@ export const ChangePasswordScreen = ({ onBack }) => {
               }}
             >
               {confirmPassword === newPassword
-                ? "✅ Les mots de passe correspondent"
-                : "❌ Les mots de passe ne correspondent pas"}
+                ? " Les mots de passe correspondent"
+                : " Les mots de passe ne correspondent pas"}
             </Text>
           )}
         </View>
@@ -272,7 +309,7 @@ export const ChangePasswordScreen = ({ onBack }) => {
         {loading ? (
           <ActivityIndicator color="#fff" size="small" />
         ) : (
-          <Text style={styles.submitBtnText}>🔐 Confirmer le changement</Text>
+          <Text style={styles.submitBtnText}> Confirmer le changement</Text>
         )}
       </TouchableOpacity>
 
@@ -289,8 +326,6 @@ export const ChangePasswordScreen = ({ onBack }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
   content: { paddingBottom: 40 },
-
-  // ── Header ─────────────────────────────────────────────────────
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -311,10 +346,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backBtnText: { fontSize: 18, color: Colors.text, fontWeight: "600" },
   headerTitle: { fontSize: 17, fontWeight: "700", color: Colors.text },
-
-  // ── Icône section ──────────────────────────────────────────────
   iconSection: { alignItems: "center", paddingVertical: 28, gap: 12 },
   iconCircle: {
     width: 80,
@@ -331,8 +363,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     paddingHorizontal: 32,
   },
-
-  // ── Error / Success ────────────────────────────────────────────
   errorBox: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -353,8 +383,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.safe + "40",
   },
   successText: { fontSize: 13, color: Colors.safe, fontWeight: "600" },
-
-  // ── Formulaire ─────────────────────────────────────────────────
   form: { paddingHorizontal: 16, gap: 16 },
   fieldGroup: { gap: 6 },
   fieldLabel: { fontSize: 13, fontWeight: "600", color: Colors.textSecondary },
@@ -369,15 +397,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   inputIcon: { fontSize: 16 },
-  input: {
-    flex: 1,
-    color: Colors.text,
-    fontSize: 14,
-    paddingVertical: 14,
-  },
+  input: { flex: 1, color: Colors.text, fontSize: 14, paddingVertical: 14 },
   eyeBtn: { fontSize: 18, paddingLeft: 4 },
-
-  // ── Force mot de passe ─────────────────────────────────────────
   strengthContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -393,12 +414,8 @@ const styles = StyleSheet.create({
   },
   strengthFill: { height: "100%", borderRadius: 2 },
   strengthLabel: { fontSize: 11, fontWeight: "700", minWidth: 40 },
-
-  // ── Règles ─────────────────────────────────────────────────────
   rules: { marginTop: 6, gap: 2 },
   rule: { fontSize: 11 },
-
-  // ── Boutons ────────────────────────────────────────────────────
   submitBtn: {
     marginHorizontal: 16,
     marginTop: 24,

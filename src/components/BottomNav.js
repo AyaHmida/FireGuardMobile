@@ -1,24 +1,42 @@
+import { Ionicons } from "@expo/vector-icons"; // ✅ import Expo vector icons
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ALERTS } from "../constants/mockData";
 import { Colors } from "../theme/colors";
 
 export const BottomNav = ({ active, onChange }) => {
   const tabs = [
-    { id: "dashboard", icon: "🏠", label: "Accueil" },
-    { id: "zones", icon: "📍", label: "Zones" },
-    { id: "alerts", icon: "🔔", label: "Alertes" },
-    { id: "family", icon: "👨‍👩‍👧", label: "Famille" }, // ✅ nouveau
-
-    { id: "profile", icon: "👤", label: "Profil" },
+    {
+      id: "dashboard",
+      icon: "home-outline",
+      label: "Accueil",
+      color: "#4CAF50",
+    }, // vert
+    { id: "zones", icon: "location-outline", label: "Zones", color: "#2196F3" }, // bleu
+    {
+      id: "alerts",
+      icon: "notifications-outline",
+      label: "Alertes",
+      color: "#F44336",
+    }, // rouge
+    {
+      id: "family",
+      icon: "people-outline",
+      label: "Famille",
+      color: "#9C27B0",
+    }, // violet
+    {
+      id: "profile",
+      icon: "person-outline",
+      label: "Profil",
+      color: "#FF9800",
+    }, // orange
   ];
 
   const alertCount = ALERTS.filter((a) => !a.resolved).length;
 
   return (
-    // ✅ div → View
     <View style={styles.container}>
       {tabs.map((tab) => (
-        // ✅ <button onClick> → <TouchableOpacity onPress>
         <TouchableOpacity
           key={tab.id}
           onPress={() => onChange(tab.id)}
@@ -27,20 +45,20 @@ export const BottomNav = ({ active, onChange }) => {
         >
           {/* Badge alertes */}
           {tab.id === "alerts" && alertCount > 0 && (
-            // ✅ div → View, texte dans <Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{alertCount}</Text>
             </View>
           )}
 
-          {/* Icône */}
-          {/* ✅ <span> → <Text>, filter CSS → opacity */}
-          <Text style={[styles.icon, active !== tab.id && styles.iconInactive]}>
-            {tab.icon}
-          </Text>
+          {/* Icône Ionicons avec couleur personnalisée */}
+          <Ionicons
+            name={tab.icon}
+            size={24}
+            color={active === tab.id ? tab.color : Colors.textMuted}
+            style={active !== tab.id && styles.iconInactive}
+          />
 
           {/* Label */}
-          {/* ✅ <span> → <Text> */}
           <Text
             style={[
               styles.label,
@@ -51,10 +69,7 @@ export const BottomNav = ({ active, onChange }) => {
           </Text>
 
           {/* Indicateur actif */}
-          {active === tab.id && (
-            // ✅ div → View
-            <View style={styles.activeIndicator} />
-          )}
+          {active === tab.id && <View style={styles.activeIndicator} />}
         </TouchableOpacity>
       ))}
     </View>
@@ -62,7 +77,6 @@ export const BottomNav = ({ active, onChange }) => {
 };
 
 const styles = StyleSheet.create({
-  // ✅ display:flex → flexDirection:'row' (flex est par défaut en RN)
   container: {
     flexDirection: "row",
     borderTopWidth: 1,
@@ -97,10 +111,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
   },
-  icon: {
-    fontSize: 22,
-  },
-  // ✅ filter: grayscale → opacity
   iconInactive: {
     opacity: 0.4,
   },

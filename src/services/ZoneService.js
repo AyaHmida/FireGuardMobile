@@ -1,19 +1,10 @@
 import { BASE_URL, apiCall } from "./api";
 
-// ─── Endpoints ────────────────────────────────────────────────────────
 const ZONE_ENDPOINTS = {
-  MY_ZONES: `${BASE_URL}/api/zones/my-zones`, // Occupant + FamilyMember
+  MY_ZONES: `${BASE_URL}/api/zones/my-zones`,
+  REALTIME: (zoneId) => `${BASE_URL}/api/zones/${zoneId}/realtime`,
 };
 
-// ─── GET /api/zones/my-zones ──────────────────────────────────────────
-/**
- * Retourne les zones de l'utilisateur authentifié :
- * - Occupant     → ses propres zones
- * - FamilyMember → zones de son occupant parent
- *
- * @param {string} token - JWT token
- * @returns {{ success, data: ZoneResponseDto[], error }}
- */
 const getMyZones = async (token) => {
   const { data, error } = await apiCall(
     ZONE_ENDPOINTS.MY_ZONES,
@@ -23,29 +14,27 @@ const getMyZones = async (token) => {
   );
 
   if (error) return { success: false, error, data: [] };
-  return { success: true, data: Array.isArray(data) ? data : [], error: null };
+
+  return { success: true, data: data ?? [] };
 };
 
-// ─── GET /api/zones/{id}/sensor-count ────────────────────────────────
-/**
- * Retourne le nombre de capteurs d'une zone
- *
- * @param {number} zoneId
- * @param {string} token
- */
-const getZoneSensorCount = async (zoneId, token) => {
-  const { data, error } = await apiCall(
-    `${BASE_URL}/api/zones/${zoneId}/sensor-count`,
-    "GET",
-    null,
-    token,
-  );
+const getZoneRealtime = async (zoneId, token) => {
+  const url = ZONE_ENDPOINTS.REALTIME(zoneId);
 
-  if (error) return { success: false, error, count: 0 };
-  return { success: true, count: data?.sensorCount ?? 0 };
+  const { data, error } = await apiCall(url, "GET", null, token);
+
+  if (error) {
+    console.log("Realtime API error:", error);
+    return {
+      success: false,
+      data: { temperature: 0, humidity: 0, gas: 0 },
+    };
+  }
+
+  return { success: true, data };
 };
 
 export const zoneService = {
   getMyZones,
-  getZoneSensorCount,
+  getZoneRealtime,
 };

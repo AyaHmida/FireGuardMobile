@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,9 +13,9 @@ import {
 import Button from "../components/Button";
 import { Card } from "../components/Card";
 import { PulseDot } from "../components/PulseDot";
-import { ALERTS } from "../constants/mockData"; // ← alertes encore en mock
+import { ALERTS } from "../constants/mockData";
 import { useAuth } from "../context/Authcontext";
-import { zoneService } from "../services/ZoneService"; // ← AJOUTÉ
+import { zoneService } from "../services/ZoneService";
 import { Colors } from "../theme/colors";
 import { getStatusColor, getStatusLabel } from "../utils/helpers";
 
@@ -25,7 +26,6 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
   const [tick, setTick] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ── Zones depuis l'API ────────────────────────────────────────
   const [zones, setZones] = useState([]);
   const [zonesLoading, setZonesLoading] = useState(true);
   const [zonesError, setZonesError] = useState("");
@@ -33,7 +33,6 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
 
   const activeAlerts = ALERTS.filter((a) => !a.resolved);
 
-  // ── Charger les zones ─────────────────────────────────────────
   const loadZones = useCallback(async () => {
     if (!token) return;
     setZonesError("");
@@ -51,7 +50,6 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
     loadZones();
   }, [loadZones]);
 
-  // Tick pour la pulse dot
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 3000);
     return () => clearInterval(t);
@@ -69,9 +67,6 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
     else setArmed(true);
   };
 
-  // ── Mapper zone backend → status visuel ──────────────────────
-  // Le backend ne retourne pas encore de status dynamique
-  // → on utilise 'normal' par défaut jusqu'à intégration MQTT
   const getZoneStatus = (zone) => zone.status ?? "normal";
 
   return (
@@ -86,7 +81,7 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity onPress={() => onAlert()} style={styles.iconBtn}>
-            <Text style={{ fontSize: 18 }}>🔔</Text>
+            <Ionicons name="notifications" size={20} color={Colors.text} />
             {activeAlerts.length > 0 && <View style={styles.notifDot} />}
           </TouchableOpacity>
           <View
@@ -98,7 +93,7 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
               },
             ]}
           >
-            <Text style={{ fontSize: 20 }}>👤</Text>
+            <Ionicons name="person" size={20} color={Colors.fire} />
           </View>
         </View>
       </View>
@@ -116,7 +111,7 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
         {/* ── Alerte critique ──────────────────────────────── */}
         {criticalZones.length > 0 && (
           <View style={styles.criticalBanner}>
-            <Text style={{ fontSize: 28 }}>⚠️</Text>
+            <Ionicons name="warning" size={28} color={Colors.danger} />
             <View style={{ flex: 1 }}>
               <Text style={styles.criticalTitle}>
                 ALERTE CRITIQUE — {criticalZones.map((z) => z.name).join(", ")}
@@ -151,7 +146,20 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
                     </Text>
                   </>
                 ) : (
-                  <Text style={styles.toggleStatusText}>⏸ Désactivé</Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Ionicons
+                      name="pause-circle"
+                      size={14}
+                      color={Colors.textSecondary}
+                    />
+                    <Text style={styles.toggleStatusText}> Désactivé</Text>
+                  </View>
                 )}
               </View>
             </View>
@@ -175,30 +183,35 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
               label: "Zones",
               value: zonesLoading ? "..." : zones.length,
               sub: "actives",
-              icon: "🏠",
+              icon: <Ionicons name="home" size={22} color={Colors.info} />,
               color: Colors.info,
             },
             {
               label: "Alertes",
               value: activeAlerts.length,
               sub: "en cours",
-              icon: "⚠️",
+              icon: (
+                <Ionicons
+                  name="alert-circle"
+                  size={22}
+                  color={activeAlerts.length > 0 ? Colors.danger : Colors.safe}
+                />
+              ),
               color: activeAlerts.length > 0 ? Colors.danger : Colors.safe,
             },
             {
               label: "Capteurs",
-              // Total sensors depuis les zones chargées
               value: zonesLoading
                 ? "..."
                 : zones.reduce((acc, z) => acc + (z.sensorCount ?? 0), 0),
               sub: "enregistrés",
-              icon: "📡",
+              icon: <Ionicons name="radio" size={22} color={Colors.safe} />,
               color: Colors.safe,
             },
           ].map((s, i) => (
             <Card key={i} style={{ flex: 1 }}>
               <View style={{ alignItems: "center" }}>
-                <Text style={{ fontSize: 22, marginBottom: 4 }}>{s.icon}</Text>
+                <View style={{ marginBottom: 4 }}>{s.icon}</View>
                 <Text
                   style={{ fontSize: 20, fontWeight: "800", color: s.color }}
                 >
@@ -222,7 +235,12 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
         <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Mes Zones</Text>
-            <Text style={styles.sectionLink}>Tout voir →</Text>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Text style={styles.sectionLink}>Tout voir</Text>
+              <Ionicons name="arrow-forward" size={13} color={Colors.fire} />
+            </View>
           </View>
 
           {/* Chargement */}
@@ -244,7 +262,12 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
           {/* Erreur */}
           {!zonesLoading && zonesError !== "" && (
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>⚠️ {zonesError}</Text>
+              <View
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Ionicons name="warning" size={14} color={Colors.danger} />
+                <Text style={styles.errorText}>{zonesError}</Text>
+              </View>
               <TouchableOpacity onPress={loadZones} style={{ marginTop: 8 }}>
                 <Text
                   style={{
@@ -262,7 +285,11 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
           {/* Vide */}
           {!zonesLoading && zonesError === "" && zones.length === 0 && (
             <View style={styles.emptyBox}>
-              <Text style={{ fontSize: 32 }}>🏠</Text>
+              <Ionicons
+                name="home-outline"
+                size={36}
+                color={Colors.textSecondary}
+              />
               <Text style={styles.emptyText}>Aucune zone configurée</Text>
               <Text style={styles.emptySubText}>
                 Contactez votre administrateur pour ajouter des zones.
@@ -270,7 +297,7 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
             </View>
           )}
 
-          {/* Grille zones ← données réelles */}
+          {/* Grille zones */}
           {!zonesLoading && zones.length > 0 && (
             <View style={styles.zonesGrid}>
               {zones.map((zone) => {
@@ -284,10 +311,11 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
                     style={styles.zoneCard}
                   >
                     <View style={styles.zoneCardTop}>
-                      {/* Icône zone (emoji selon nom ou défaut) */}
-                      <Text style={{ fontSize: 24 }}>
-                        {getZoneIcon(zone.name)}
-                      </Text>
+                      <Ionicons
+                        name={getZoneIcon(zone.name)}
+                        size={24}
+                        color={Colors.fire}
+                      />
                       <View style={styles.statusBadge}>
                         <PulseDot color={getStatusColor(status)} size={6} />
                         <Text
@@ -315,25 +343,27 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
           )}
         </View>
 
-        {/* ── Alertes récentes (mock temporaire) ───────────── */}
+        {/* ── Alertes récentes ─────────────────────────────── */}
         <View>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Alertes Récentes</Text>
-            <TouchableOpacity onPress={() => onAlert()}>
-              <Text style={styles.sectionLink}>Historique →</Text>
+            <TouchableOpacity
+              onPress={() => onAlert()}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Text style={styles.sectionLink}>Historique</Text>
+              <Ionicons name="arrow-forward" size={13} color={Colors.fire} />
             </TouchableOpacity>
           </View>
           {ALERTS.slice(0, 3).map((alert) => (
             <Card key={alert.id} style={{ marginBottom: 8 }}>
               <View style={styles.recentAlertRow}>
                 <View style={styles.recentAlertIcon}>
-                  <Text style={{ fontSize: 18 }}>
-                    {alert.type === "Fumée"
-                      ? "💨"
-                      : alert.type === "Gaz"
-                        ? "⚗️"
-                        : "🌡️"}
-                  </Text>
+                  <Ionicons
+                    name={getAlertIcon(alert.type)}
+                    size={18}
+                    color={getAlertIconColor(alert.type)}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.recentAlertTitle}>
@@ -370,7 +400,12 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={{ fontSize: 22, marginBottom: 8 }}>⚠️</Text>
+            <Ionicons
+              name="warning"
+              size={28}
+              color={Colors.danger}
+              style={{ marginBottom: 8 }}
+            />
             <Text style={styles.modalTitle}>Désactiver la surveillance ?</Text>
             <Text style={styles.modalDesc}>
               Toutes les alertes seront suspendues. Confirmer l action.
@@ -401,18 +436,36 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
   );
 };
 
-// ── Helper : icône par nom de zone ────────────────────────────────────
+// ── Helper : icône Ionicons par nom de zone ───────────────────────────
 const getZoneIcon = (name = "") => {
   const n = name.toLowerCase();
-  if (n.includes("salon") || n.includes("living")) return "🛋️";
-  if (n.includes("cuisine") || n.includes("kitchen")) return "🍳";
-  if (n.includes("chambre") || n.includes("bedroom")) return "🛏️";
-  if (n.includes("bureau") || n.includes("office")) return "💻";
-  if (n.includes("garage")) return "🚗";
-  if (n.includes("jardin") || n.includes("garden")) return "🌿";
-  if (n.includes("entrée") || n.includes("hall")) return "🚪";
-  if (n.includes("salle de bain") || n.includes("bathroom")) return "🚿";
-  return "🏠";
+  if (n.includes("salon") || n.includes("living")) return "tv-outline";
+  if (n.includes("cuisine") || n.includes("kitchen"))
+    return "restaurant-outline";
+  if (n.includes("chambre") || n.includes("bedroom")) return "bed-outline";
+  if (n.includes("bureau") || n.includes("office")) return "desktop-outline";
+  if (n.includes("garage")) return "car-outline";
+  if (n.includes("jardin") || n.includes("garden")) return "leaf-outline";
+  if (n.includes("entrée") || n.includes("hall")) return "door-open-outline";
+  if (n.includes("salle de bain") || n.includes("bathroom"))
+    return "water-outline";
+  return "home-outline";
+};
+
+// ── Helper : icône Ionicons par type d'alerte ─────────────────────────
+const getAlertIcon = (type = "") => {
+  if (type === "Fumée") return "cloud-outline";
+  if (type === "Gaz") return "flask-outline";
+  if (type === "Température") return "thermometer-outline";
+  return "alert-circle-outline";
+};
+
+// ── Helper : couleur icône par type d'alerte ──────────────────────────
+const getAlertIconColor = (type = "") => {
+  if (type === "Fumée") return "#94A3B8";
+  if (type === "Gaz") return "#A78BFA";
+  if (type === "Température") return "#FB923C";
+  return Colors?.danger ?? "#EF4444";
 };
 
 const styles = StyleSheet.create({
