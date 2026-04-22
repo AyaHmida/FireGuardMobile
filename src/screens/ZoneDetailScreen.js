@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 
+import * as signalR from "@microsoft/signalr";
 import { LineChart } from "react-native-chart-kit";
 
 import Button from "../components/Button";
@@ -27,7 +28,7 @@ import {
 } from "../utils/helpers";
 
 import { useAuth } from "../context/Authcontext";
-import { zoneService } from "../services/ZoneService";
+import { BASE_URL } from "../services/api";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -50,39 +51,80 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
     humidity: [],
   });
 
+  const connectionRef = useRef(null);
+
   const zoneAlerts = ALERTS.filter((a) => a.zone === zone?.name);
 
-  // ───────── FETCH REALTIME (SNAPSHOT MODE) ─────────
-  const loadRealtime = useCallback(async () => {
-    if (!zone?.id || !token) return;
+  // ─────────────────────────────────────────────
+  // REAL TIME SIGNALR
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!zone?.id) return;
 
-    const res = await zoneService.getZoneRealtime(zone.id, token);
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${BASE_URL}/hubs/realtime?zoneId=${zone.id}`)
+      .withAutomaticReconnect()
+      .build();
 
-    if (res.success && res.data) {
-      const temp = Number(res.data.temperature ?? 0);
-      const gas = Number(res.data.gas ?? 0);
-      const hum = Number(res.data.humidity ?? 0);
+    connection.on("ZoneRealtimeUpdated", (data) => {
+      console.log("🔥 REALTIME DATA:", data);
 
-      setRealtime(res.data);
+      setRealtime(data);
+      setLoading(false);
 
-      // 🔥 SNAPSHOT STABLE (pas de streaming)
-      const updated = {
-        temperature: [temp - 2, temp - 1, temp],
-        gas: [gas - 10, gas - 5, gas],
-        humidity: [hum - 3, hum - 1, hum],
+      const temp = Number(data.temperature ?? 0);
+      const gas = Number(data.gas ?? 0);
+      const hum = Number(data.humidity ?? 0);
+
+      const updatedHistory = {
+        temperature: [...historyRef.current.temperature.slice(-9), temp],
+        gas: [...historyRef.current.gas.slice(-9), gas],
+        humidity: [...historyRef.current.humidity.slice(-9), hum],
       };
 
-      historyRef.current = updated;
-      setHistory(updated);
+      historyRef.current = updatedHistory;
+      setHistory(updatedHistory);
+    });
+
+    connection
+      .start()
+      .then(() => {
+        console.log("✅ SignalR connected");
+      })
+      .catch((err) => console.log("SignalR error:", err));
+
+    connectionRef.current = connection;
+
+    return () => {
+      connection.stop();
+    };
+  }, [zone?.id]);
+
+  // ─────────────────────────────────────────────
+  // ALERTS
+  // ─────────────────────────────────────────────
+  const renderAlerts = () => {
+    if (zoneAlerts.length === 0) {
+      return <Text style={{ textAlign: "center" }}>✅ Aucune alerte</Text>;
     }
 
-    setLoading(false);
-  }, [zone?.id, token]);
-
-  // ───────── INIT (NO INTERVAL → STABLE) ─────────
-  useEffect(() => {
-    loadRealtime();
-  }, []);
+    return zoneAlerts.map((a) => (
+      <View key={a.id} style={styles.historyRow}>
+        <View
+          style={[
+            styles.historyDot,
+            { backgroundColor: getStatusColor(a.level) },
+          ]}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.historyType}>
+            {a.type} — {a.value}
+          </Text>
+          <Text style={styles.historyTime}>{a.time}</Text>
+        </View>
+      </View>
+    ));
+  };
 
   return (
     <View style={styles.container}>
@@ -117,7 +159,7 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
           <View style={{ padding: 20, alignItems: "center" }}>
             <ActivityIndicator size="small" color={Colors.fire} />
             <Text style={{ marginTop: 10, color: Colors.textSecondary }}>
-              Chargement des données...
+              Connexion temps réel...
             </Text>
           </View>
         )}
@@ -156,6 +198,7 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
           </View>
         </Card>
 
+        {/* TABS */}
         <View style={styles.tabRow}>
           {["live", "history"].map((tab) => (
             <TouchableOpacity
@@ -175,7 +218,7 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
           ))}
         </View>
 
-        {/* CHARTS */}
+        {/* LIVE CHARTS */}
         {activeTab === "live" &&
           [
             {
@@ -197,7 +240,7 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
               data: history.humidity,
             },
           ].map((chart, i) => (
-            <Card key={i} style={{ marginBottom: 16, paddingBottom: 12 }}>
+            <Card key={i} style={{ marginBottom: 16 }}>
               <View style={styles.chartHeader}>
                 <Text style={styles.chartLabel}>{chart.label}</Text>
                 <Text style={[styles.chartValue, { color: chart.color }]}>
@@ -207,77 +250,33 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
 
               <LineChart
                 data={{
-                  labels: ["-2", "-1", "now"],
+                  labels: [],
                   datasets: [
                     {
-                      data:
-                        chart.data.length >= 2
-                          ? chart.data
-                          : [chart.value - 0.1, chart.value],
-                      color: () => chart.color, // Ensure line uses the theme color
-                      strokeWidth: 3, // Thicker, professional line
+                      data: chart.data.length > 0 ? chart.data : [chart.value],
                     },
                   ],
                 }}
-                width={screenWidth - 64} // Adjusted for Card padding
-                height={85} // Reduced height for streamlined proportion
-                withDots={false} // Clean appearance: no dots
-                withInnerLines={false} // No background grid
-                withOuterLines={false} // No axis borders
+                width={screenWidth - 64}
+                height={90}
+                withDots={false}
+                withInnerLines={false}
+                withOuterLines={false}
                 withVerticalLabels={false}
                 withHorizontalLabels={false}
+                bezier
                 chartConfig={{
-                  backgroundGradientFrom: "#ffffff", // Pure white background
-                  backgroundGradientTo: "#ffffff",
-                  fillShadowGradient: chart.color, // Color for the gradient fill
-                  fillShadowGradientOpacity: 0.2, // Subtle gradient under the curve
-                  decimalPlaces: 1,
-                  color: (opacity = 1) => chart.color,
-                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                  propsForBackgroundLines: {
-                    strokeWidth: 0, // Hidden background lines
-                  },
+                  backgroundGradientFrom: "#fff",
+                  backgroundGradientTo: "#fff",
+                  color: () => chart.color,
                 }}
-                bezier // Smooth curves
-                style={{
-                  marginVertical: 8,
-                  borderRadius: 16,
-                  paddingRight: 0, // Eliminates padding meant for labels
-                }}
+                style={{ borderRadius: 16 }}
               />
-
-              <View style={styles.chartFooter}>
-                <Text style={styles.chartTime}>Il y a 5 min</Text>
-                <Text style={styles.chartTime}>Maintenant</Text>
-              </View>
             </Card>
           ))}
 
         {/* HISTORY */}
-        {activeTab === "history" && (
-          <Card>
-            {zoneAlerts.length === 0 ? (
-              <Text style={{ textAlign: "center" }}>✅ Aucune alerte</Text>
-            ) : (
-              zoneAlerts.map((a) => (
-                <View key={a.id} style={styles.historyRow}>
-                  <View
-                    style={[
-                      styles.historyDot,
-                      { backgroundColor: getStatusColor(a.level) },
-                    ]}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.historyType}>
-                      {a.type} — {a.value}
-                    </Text>
-                    <Text style={styles.historyTime}>{a.time}</Text>
-                  </View>
-                </View>
-              ))
-            )}
-          </Card>
-        )}
+        {activeTab === "history" && <Card>{renderAlerts()}</Card>}
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -341,13 +340,6 @@ const styles = StyleSheet.create({
   chartLabel: { fontWeight: "600" },
 
   chartValue: { fontSize: 18, fontWeight: "bold" },
-
-  chartFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  chartTime: { fontSize: 10, color: "#999" },
 
   historyRow: {
     flexDirection: "row",
