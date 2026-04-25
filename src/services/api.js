@@ -24,6 +24,9 @@ export const API_ENDPOINTS = {
     MY_ZONES: `${BASE_URL}/api/zones/my-zones`,
     REALTIME: (zoneId) => `${BASE_URL}/api/zones/zone/${zoneId}/realtime`,
   },
+  DEVICE_CONTROL: {
+    CONTROL: (deviceId) => `${BASE_URL}/api/device-control/${deviceId}`,
+  },
 };
 
 // ─── Helper fetch générique ──────────────────────────────────────────
