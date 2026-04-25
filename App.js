@@ -12,50 +12,44 @@ import AlertsScreen from "./src/screens/AlertsScreen";
 import { ChangePasswordScreen } from "./src/screens/ChangePasswordScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
 import FamilyScreen from "./src/screens/FamilyScreen";
-import { ForgotPasswordScreen } from "./src/screens/Forgotpasswordscreen"; // ← AJOUTÉ
+import { ForgotPasswordScreen } from "./src/screens/Forgotpasswordscreen";
 import LoginScreen from "./src/screens/LoginScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import RegisterScreen from "./src/screens/Registerscreen";
-import { ResetPasswordScreen } from "./src/screens/Resetpasswordscreen"; // ← AJOUTÉ
+import { ResetPasswordScreen } from "./src/screens/Resetpasswordscreen";
 import ZoneDetailScreen from "./src/screens/ZoneDetailScreen";
 
 function AppContent() {
   const [screen, setScreen] = useState("login");
   const [navTab, setNavTab] = useState("dashboard");
   const [selectedZone, setSelectedZone] = useState(null);
+  const [alertZoneId, setAlertZoneId] = useState(null); // ✅ AJOUT
   const [invitationToken, setInvitationToken] = useState(null);
-  const [resetToken, setResetToken] = useState(null); // ← AJOUTÉ
+  const [resetToken, setResetToken] = useState(null);
 
   // ── Extraire les tokens de l'URL au chargement ────────────────────
   useEffect(() => {
     const extractTokenFromURL = async () => {
       try {
-        // Sur web
-        // ✅ APRÈS — vérifie le path d'abord
         if (Platform.OS === "web" && typeof window !== "undefined") {
-          const path = window.location.pathname; // ← AJOUTÉ
+          const path = window.location.pathname;
           const params = new URLSearchParams(window.location.search);
           const token = params.get("token");
 
           if (token) {
-            // /reset-password?token=XXX  →  reset password
             if (path.includes("reset-password")) {
               setResetToken(token);
               setScreen("resetPassword");
               return;
             }
-
-            // /?token=XXX  →  invitation
             setInvitationToken(token);
             return;
           }
         }
 
-        // Sur iOS/Android avec deep linking
         if (Platform.OS !== "web") {
           const url = await Linking.getInitialURL();
           if (url != null) {
-            // fireguard://reset-password?token=XXX
             if (url.includes("reset-password")) {
               const tokenMatch = url.match(/token=([^&]+)/);
               if (tokenMatch?.[1]) {
@@ -64,8 +58,6 @@ function AppContent() {
                 return;
               }
             }
-
-            // Token d'invitation
             const tokenMatch = url.match(/token=([^&]+)/);
             if (tokenMatch?.[1]) {
               setInvitationToken(tokenMatch[1]);
@@ -79,10 +71,8 @@ function AppContent() {
 
     extractTokenFromURL();
 
-    // Écouter les changements de deep link (iOS/Android)
     if (Platform.OS !== "web") {
       const subscription = Linking.addEventListener("url", ({ url }) => {
-        // Deep link reset password
         if (url.includes("reset-password")) {
           const tokenMatch = url.match(/token=([^&]+)/);
           if (tokenMatch?.[1]) {
@@ -91,8 +81,6 @@ function AppContent() {
             return;
           }
         }
-
-        // Deep link invitation
         const tokenMatch = url.match(/token=([^&]+)/);
         if (tokenMatch?.[1]) {
           setInvitationToken(tokenMatch[1]);
@@ -103,7 +91,7 @@ function AppContent() {
     }
   }, []);
 
-  // ── Écrans hors session (pas de BottomNav, pas de StatusBar) ──────
+  // ── Écrans hors session ───────────────────────────────────────────
   const PUBLIC_SCREENS = [
     "login",
     "register",
@@ -114,24 +102,31 @@ function AppContent() {
 
   // ── Handlers ──────────────────────────────────────────────────────
   const handleLogin = () => setScreen("app");
+
   const handleZone = (zone) => {
     setSelectedZone(zone);
     setScreen("zone");
   };
-  const handleAlert = () => {
+
+  // ✅ CORRIGÉ — reçoit zoneId depuis DashboardScreen
+  const handleAlert = (zoneId) => {
+    setAlertZoneId(zoneId ?? null);
     setNavTab("alerts");
     setScreen("app");
   };
+
   const handleBack = () => setScreen("app");
+
   const handleNavTab = (tab) => {
     setNavTab(tab);
     setScreen("app");
   };
+
   const handleLogout = () => {
     setScreen("login");
     setNavTab("dashboard");
   };
-  const handleFamily = () => setScreen("family");
+
   const handleChangePassword = () => setScreen("changePassword");
 
   const renderScreen = () => {
@@ -158,7 +153,7 @@ function AppContent() {
         <LoginScreen
           onLogin={handleLogin}
           onRegister={() => setScreen("register")}
-          onForgotPassword={() => setScreen("forgotPassword")} // ← minuscule, cohérent
+          onForgotPassword={() => setScreen("forgotPassword")}
         />
       );
 
@@ -171,11 +166,9 @@ function AppContent() {
       );
 
     if (screen === "forgotPassword")
-      // ← AJOUTÉ
       return <ForgotPasswordScreen onBack={() => setScreen("login")} />;
 
     if (screen === "resetPassword")
-      // ← AJOUTÉ
       return (
         <ResetPasswordScreen
           token={resetToken}
@@ -200,7 +193,8 @@ function AppContent() {
       case "zones":
         return <DashboardScreen onZone={handleZone} onAlert={handleAlert} />;
       case "alerts":
-        return <AlertsScreen onBack={handleBack} />;
+        // ✅ CORRIGÉ — zoneId transmis
+        return <AlertsScreen onBack={handleBack} zoneId={alertZoneId} />;
       case "profile":
         return (
           <ProfileScreen
