@@ -20,7 +20,6 @@ const getMyZones = async (token) => {
 
 const getZoneRealtime = async (zoneId, token) => {
   const url = ZONE_ENDPOINTS.REALTIME(zoneId);
-
   const { data, error } = await apiCall(url, "GET", null, token);
 
   if (error) {

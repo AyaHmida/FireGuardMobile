@@ -27,6 +27,11 @@ export const API_ENDPOINTS = {
   DEVICE_CONTROL: {
     CONTROL: (deviceId) => `${BASE_URL}/api/device-control/${deviceId}`,
   },
+  SENSOR_CONFIG: {
+    GET_BY_SENSOR: (sensorId) =>
+      `${BASE_URL}/api/sensor-configurations/${sensorId}`,
+    SET: `${BASE_URL}/api/sensor-configurations`,
+  },
 };
 
 // ─── Helper fetch générique ──────────────────────────────────────────
