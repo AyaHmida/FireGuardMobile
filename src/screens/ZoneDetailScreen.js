@@ -29,6 +29,8 @@ import {
 
 import { useAuth } from "../context/Authcontext";
 import { BASE_URL } from "../services/api";
+import { getSensorStats } from "../services/MeasurementService";
+import { sensorService } from "../services/sensorService";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -45,6 +47,14 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
     humidity: [],
   });
 
+  const [sensors, setSensors] = useState([]);
+  const [historyStats, setHistoryStats] = useState({
+    temperature: { min: 0, max: 0, avg: 0 },
+    gas: { min: 0, max: 0, avg: 0 },
+    humidity: { min: 0, max: 0, avg: 0 },
+  });
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const historyRef = useRef({
     temperature: [],
     gas: [],
@@ -54,6 +64,65 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
   const connectionRef = useRef(null);
 
   const zoneAlerts = ALERTS.filter((a) => a.zone === zone?.name);
+
+  // ─────────────────────────────────────────────
+  // FETCH SENSORS FOR ZONE
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!zone?.id || !token) return;
+
+    const fetchSensors = async () => {
+      const result = await sensorService.getByZone(zone.id, token);
+      if (result.success) {
+        setSensors(result.data);
+      } else {
+        setSensors([]);
+      }
+    };
+
+    fetchSensors();
+  }, [zone?.id, token]);
+
+  // ─────────────────────────────────────────────
+  // FETCH HISTORY STATS
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (activeTab !== "history" || sensors.length === 0 || !token) return;
+
+    const fetchHistoryStats = async () => {
+      setHistoryLoading(true);
+
+      const now = new Date();
+      const start = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+      const end = now.toISOString();
+
+      const stats = {
+        temperature: { min: 0, max: 0, avg: 0 },
+        gas: { min: 0, max: 0, avg: 0 },
+        humidity: { min: 0, max: 0, avg: 0 },
+      };
+
+      for (const sensor of sensors) {
+        const sensorId = sensor.id;
+        const type = sensor.type?.toLowerCase();
+
+        if (!sensorId || !["temperature", "gas", "humidity"].includes(type))
+          continue;
+
+        try {
+          const sensorStats = await getSensorStats(sensorId, start, end, token);
+          stats[type] = sensorStats;
+        } catch (error) {
+          console.error(`Failed to fetch stats for sensor ${sensorId}:`, error);
+        }
+      }
+
+      setHistoryStats(stats);
+      setHistoryLoading(false);
+    };
+
+    fetchHistoryStats();
+  }, [activeTab, sensors, token]);
 
   // ─────────────────────────────────────────────
   // REAL TIME SIGNALR
@@ -67,8 +136,6 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
       .build();
 
     connection.on("ZoneRealtimeUpdated", (data) => {
-      console.log("🔥 REALTIME DATA:", data);
-
       setRealtime(data);
       setLoading(false);
 
@@ -86,18 +153,10 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
       setHistory(updatedHistory);
     });
 
-    connection
-      .start()
-      .then(() => {
-        console.log("✅ SignalR connected");
-      })
-      .catch((err) => console.log("SignalR error:", err));
-
+    connection.start().catch((err) => console.log("SignalR error:", err));
     connectionRef.current = connection;
 
-    return () => {
-      connection.stop();
-    };
+    return () => connection.stop();
   }, [zone?.id]);
 
   // ─────────────────────────────────────────────
@@ -126,6 +185,183 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
     ));
   };
 
+  // ─────────────────────────────────────────────
+  // STATS SECTION (redesigned)
+  // ─────────────────────────────────────────────
+  const SENSOR_CONFIG = [
+    {
+      key: "temperature",
+      label: "Température",
+      unit: "°C",
+      max: 60,
+      color: "#EF9F27",
+      bgColor: "#FFF8EC",
+      icon: "🌡️",
+      stats: historyStats.temperature,
+    },
+    {
+      key: "gas",
+      label: "Gaz",
+      unit: "ppm",
+      max: 2000,
+      color: "#E24B4A",
+      bgColor: "#FFF1F1",
+      icon: "💨",
+      stats: historyStats.gas,
+    },
+    {
+      key: "humidity",
+      label: "Humidité",
+      unit: "%",
+      max: 100,
+      color: "#378ADD",
+      bgColor: "#EEF5FF",
+      icon: "💧",
+      stats: historyStats.humidity,
+    },
+  ];
+
+  const getProgressWidth = (value, max) => {
+    const pct = Math.min((value / max) * 100, 100);
+    return `${pct}%`;
+  };
+
+  const renderStatsContent = () => {
+    if (historyLoading) {
+      return (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="small" color={Colors.fire} />
+          <Text style={styles.loadingText}>Chargement de l'historique...</Text>
+        </View>
+      );
+    }
+
+    if (sensors.length === 0) {
+      return (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyIcon}>⚠️</Text>
+          <Text style={styles.emptyText}>
+            Aucun capteur trouvé pour cette zone
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        {/* Section header */}
+        <View style={styles.statsHeader}>
+          <Text style={styles.statsSectionTitle}>STATISTIQUES</Text>
+          <View style={styles.statsBadge}>
+            <Text style={styles.statsBadgeText}>Dernières 24h</Text>
+          </View>
+        </View>
+
+        {/* Sensor blocks */}
+        {SENSOR_CONFIG.map((item, i) => {
+          const avgPct = Math.min((item.stats.avg / item.max) * 100, 100);
+          const minPct = Math.min((item.stats.min / item.max) * 100, 100);
+          const maxPct = Math.min((item.stats.max / item.max) * 100, 100);
+
+          return (
+            <View key={i} style={styles.sensorBlock}>
+              {/* Top row: icon + label + current value */}
+              <View style={styles.sensorTopRow}>
+                <View style={styles.sensorNameRow}>
+                  <View
+                    style={[styles.sensorDot, { backgroundColor: item.color }]}
+                  />
+                  <Text style={styles.sensorLabel}>{item.label}</Text>
+                </View>
+                <View
+                  style={[
+                    styles.sensorValuePill,
+                    { backgroundColor: item.bgColor },
+                  ]}
+                >
+                  <Text style={[styles.sensorValueText, { color: item.color }]}>
+                    {item.stats.avg.toFixed(1)} {item.unit}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Metric cards row */}
+              <View style={styles.metricRow}>
+                {[
+                  { label: "Min", value: item.stats.min },
+                  { label: "Moy", value: item.stats.avg },
+                  { label: "Max", value: item.stats.max },
+                ].map((m, j) => (
+                  <View
+                    key={j}
+                    style={[
+                      styles.metricCard,
+                      j === 1 && { borderColor: item.color, borderWidth: 1 },
+                    ]}
+                  >
+                    <Text style={styles.metricCardLabel}>{m.label}</Text>
+                    <Text
+                      style={[
+                        styles.metricCardValue,
+                        j === 1 && { color: item.color },
+                      ]}
+                    >
+                      {m.value.toFixed(1)}
+                    </Text>
+                    <Text style={styles.metricCardUnit}>{item.unit}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Progress bar */}
+              <View style={styles.progressTrack}>
+                {/* Range band between min and max */}
+                <View
+                  style={[
+                    styles.progressBand,
+                    {
+                      left: `${minPct}%`,
+                      width: `${maxPct - minPct}%`,
+                      backgroundColor: item.color + "30",
+                    },
+                  ]}
+                />
+                {/* Average marker */}
+                <View
+                  style={[
+                    styles.progressAvgMarker,
+                    {
+                      left: `${avgPct}%`,
+                      backgroundColor: item.color,
+                    },
+                  ]}
+                />
+              </View>
+
+              {/* Bar legend */}
+              <View style={styles.progressLegend}>
+                <Text style={styles.progressLegendText}>0</Text>
+                <View style={styles.progressLegendCenter}>
+                  <View
+                    style={[styles.legendDot, { backgroundColor: item.color }]}
+                  />
+                  <Text
+                    style={[styles.progressLegendText, { color: item.color }]}
+                  >
+                    moy {item.stats.avg.toFixed(1)} {item.unit}
+                  </Text>
+                </View>
+                <Text style={styles.progressLegendText}>
+                  {item.max} {item.unit}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* HEADER */}
@@ -138,7 +374,6 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
           <Text style={styles.headerTitle}>
             {zone?.icon} {zone?.name}
           </Text>
-
           <View style={styles.headerSub}>
             <PulseDot color={getStatusColor(zone?.status)} size={6} />
             <Text style={styles.headerSubText}>
@@ -167,7 +402,6 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
         {/* GAUGES */}
         <Card>
           <Text style={styles.gaugesTitle}>VALEURS EN TEMPS RÉEL</Text>
-
           <View style={styles.gaugesRow}>
             <Gauge
               value={parseFloat((realtime?.temperature ?? 0).toFixed(1))}
@@ -177,7 +411,6 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
               unit="°C"
               size={90}
             />
-
             <Gauge
               value={parseFloat((realtime?.gas ?? 0).toFixed(1))}
               max={2000}
@@ -186,7 +419,6 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
               unit="ppm"
               size={90}
             />
-
             <Gauge
               value={parseFloat((realtime?.humidity ?? 0).toFixed(1))}
               max={100}
@@ -247,7 +479,6 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
                   {Number(chart.value).toFixed(1)}
                 </Text>
               </View>
-
               <LineChart
                 data={{
                   labels: [],
@@ -275,8 +506,8 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
             </Card>
           ))}
 
-        {/* HISTORY */}
-        {activeTab === "history" && <Card>{renderAlerts()}</Card>}
+        {/* ──── HISTORY / STATS ──── */}
+        {activeTab === "history" && <Card>{renderStatsContent()}</Card>}
 
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -288,35 +519,24 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
 
-  header: {
-    flexDirection: "row",
-    padding: 16,
-    alignItems: "center",
-  },
-
+  header: { flexDirection: "row", padding: 16, alignItems: "center" },
   backBtn: {
     width: 36,
     height: 36,
     justifyContent: "center",
     alignItems: "center",
   },
-
   backBtnText: { fontSize: 18 },
-
   headerTitle: { fontSize: 16, fontWeight: "bold" },
-
   headerSub: { flexDirection: "row", alignItems: "center" },
-
   headerSubText: { fontSize: 12, color: Colors.textSecondary },
 
   content: { padding: 16 },
 
   gaugesTitle: { fontWeight: "bold", marginBottom: 10 },
-
   gaugesRow: { flexDirection: "row", justifyContent: "space-around" },
 
   tabRow: { flexDirection: "row", marginVertical: 10 },
-
   tabBtn: {
     flex: 1,
     padding: 10,
@@ -324,11 +544,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
   },
-
   tabBtnActive: { backgroundColor: Colors.fire },
-
   tabText: { fontSize: 13 },
-
   tabTextActive: { color: "#fff" },
 
   chartHeader: {
@@ -336,26 +553,169 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 10,
   },
-
   chartLabel: { fontWeight: "600" },
-
   chartValue: { fontSize: 18, fontWeight: "bold" },
 
-  historyRow: {
-    flexDirection: "row",
-    paddingVertical: 10,
-  },
-
-  historyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 10,
-  },
-
+  historyRow: { flexDirection: "row", paddingVertical: 10 },
+  historyDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
   historyType: { fontWeight: "600" },
-
   historyTime: { fontSize: 11, color: "#777" },
+
+  // ── Loading / Empty ──
+  loadingWrap: { padding: 24, alignItems: "center" },
+  loadingText: { marginTop: 10, color: Colors.textSecondary, fontSize: 13 },
+  emptyWrap: { padding: 24, alignItems: "center" },
+  emptyIcon: { fontSize: 28, marginBottom: 8 },
+  emptyText: { fontSize: 13, color: Colors.textSecondary, textAlign: "center" },
+
+  // ── Stats header ──
+  statsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+  },
+  statsSectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    color: "#999",
+  },
+  statsBadge: {
+    backgroundColor: "#F0F0F0",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  statsBadgeText: {
+    fontSize: 11,
+    color: "#777",
+    fontWeight: "500",
+  },
+
+  // ── Sensor block card ──
+  sensorBlock: {
+    backgroundColor: "#FAFAFA",
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: "#E5E5E5",
+    padding: 14,
+    marginBottom: 12,
+  },
+
+  // ── Top row ──
+  sensorTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  sensorNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sensorDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  sensorLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1A1A1A",
+  },
+  sensorValuePill: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  sensorValueText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  // ── Metric cards ──
+  metricRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 14,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: "#E5E5E5",
+    padding: 10,
+    alignItems: "center",
+  },
+  metricCardLabel: {
+    fontSize: 10,
+    color: "#AAA",
+    fontWeight: "500",
+    marginBottom: 4,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+  },
+  metricCardValue: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1A1A1A",
+    lineHeight: 20,
+  },
+  metricCardUnit: {
+    fontSize: 10,
+    color: "#AAA",
+    marginTop: 2,
+  },
+
+  // ── Progress bar ──
+  progressTrack: {
+    height: 6,
+    backgroundColor: "#ECECEC",
+    borderRadius: 99,
+    overflow: "hidden",
+    position: "relative",
+    marginBottom: 6,
+  },
+  progressBand: {
+    position: "absolute",
+    top: 0,
+    height: 6,
+    borderRadius: 99,
+  },
+  progressAvgMarker: {
+    position: "absolute",
+    top: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginLeft: -5,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+
+  // ── Bar legend ──
+  progressLegend: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  progressLegendCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  progressLegendText: {
+    fontSize: 10,
+    color: "#AAA",
+  },
 });
 
 export default ZoneDetailScreen;
