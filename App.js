@@ -11,6 +11,7 @@ import AcceptInvitationScreen from "./src/screens/AcceptInvitationScreen";
 import AlertsScreen from "./src/screens/AlertsScreen";
 import { ChangePasswordScreen } from "./src/screens/ChangePasswordScreen";
 import DashboardScreen from "./src/screens/DashboardScreen";
+import { EmergencyContactsScreen } from "./src/screens/EmergencyContactsScreen";
 import FamilyScreen from "./src/screens/FamilyScreen";
 import { ForgotPasswordScreen } from "./src/screens/Forgotpasswordscreen";
 import LoginScreen from "./src/screens/LoginScreen";
@@ -18,7 +19,6 @@ import ProfileScreen from "./src/screens/ProfileScreen";
 import RegisterScreen from "./src/screens/Registerscreen";
 import { ResetPasswordScreen } from "./src/screens/Resetpasswordscreen";
 import ZoneDetailScreen from "./src/screens/ZoneDetailScreen";
-
 function AppContent() {
   const [screen, setScreen] = useState("login");
   const [navTab, setNavTab] = useState("dashboard");
@@ -128,6 +128,7 @@ function AppContent() {
   };
 
   const handleChangePassword = () => setScreen("changePassword");
+  const handleEmergencyContacts = () => setScreen("emergencyContacts");
 
   const renderScreen = () => {
     // ── Invitation ─────────────────────────────────────────────────
@@ -186,7 +187,8 @@ function AppContent() {
 
     if (screen === "zone")
       return <ZoneDetailScreen zone={selectedZone} onBack={handleBack} />;
-
+    if (screen === "emergencyContacts")
+      return <EmergencyContactsScreen onBack={() => setScreen("app")} />;
     switch (navTab) {
       case "dashboard":
         return <DashboardScreen onZone={handleZone} onAlert={handleAlert} />;
@@ -201,6 +203,7 @@ function AppContent() {
             onBack={handleBack}
             onLogout={handleLogout}
             onChangePassword={handleChangePassword}
+            onEmergencyContacts={handleEmergencyContacts}
           />
         );
       case "family":
