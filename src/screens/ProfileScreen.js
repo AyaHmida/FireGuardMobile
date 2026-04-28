@@ -37,7 +37,12 @@ const SLIDER_ROWS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
+export const ProfileScreen = ({
+  onBack,
+  onLogout,
+  onChangePassword,
+  onEmergencyContacts,
+}) => {
   const { user, logout, token } = useAuth();
 
   const [notifPush, setNotifPush] = useState(true);
@@ -313,7 +318,7 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
           <Text style={styles.sectionTitle}>ACCÈS & URGENCE</Text>
           <View style={styles.linkSection}>
             <TouchableOpacity
-              onPress={() => {}}
+              onPress={onEmergencyContacts}
               activeOpacity={0.6}
               style={[styles.linkRow, styles.rowBorder]}
             >
@@ -323,7 +328,7 @@ export const ProfileScreen = ({ onBack, onLogout, onChangePassword }) => {
                 color={Colors.danger}
                 style={styles.rowIcon}
               />
-              <Text style={styles.rowLabel}>Contacts d'urgence</Text>
+              <Text style={styles.rowLabel}>Contacts d urgence</Text>
               <Ionicons
                 name="chevron-forward"
                 size={16}

@@ -231,7 +231,7 @@ export const ZoneDetailScreen = ({ zone, onBack }) => {
       return (
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="small" color={Colors.fire} />
-          <Text style={styles.loadingText}>Chargement de l'historique...</Text>
+          <Text style={styles.loadingText}>Chargement de l historique...</Text>
         </View>
       );
     }
