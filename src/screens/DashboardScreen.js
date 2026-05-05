@@ -2,17 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { PulseDot } from "../components/PulseDot";
 import { useAuth } from "../context/Authcontext";
+import { useSystemState } from "../context/SystemStateContext";
 
 import * as signalR from "@microsoft/signalr";
 import { BASE_URL } from "../services/api";
@@ -260,13 +263,18 @@ const EmergencyControlCard = ({ zone, token, deviceId }) => {
 // ─────────────────────────────────────────────────────────────────────
 export const DashboardScreen = ({ onZone, onAlert }) => {
   const { user, token } = useAuth();
+  const { systemState, toggleSystemState } = useSystemState();
 
-  const [armed, setArmed] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [zones, setZones] = useState([]);
   const [zonesLoading, setZonesLoading] = useState(true);
   const [zonesError, setZonesError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [offReason, setOffReason] = useState("");
+  const [reasonError, setReasonError] = useState("");
+  const [toggleLoading, setToggleLoading] = useState(false);
+
+  const isActive = systemState?.isActive ?? true;
 
   // ── Recent alerts (last 3, all zones combined) ────────────────────
   const [recentAlerts, setRecentAlerts] = useState([]);
@@ -387,10 +395,12 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
           next[idx] = { ...next[idx], status: alert.level };
 
           // 2. Prepend to recentAlerts with the resolved zone name
-          const zoneName = next[idx].name ?? `Zone ${alert.zoneId}`;
-          setRecentAlerts((prevAlerts) =>
-            mergeAndTrim(prevAlerts, [{ ...alert, zoneName }]),
-          );
+          if (alert.level !== "NORMAL") {
+            const zoneName = next[idx].name ?? `Zone ${alert.zoneId}`;
+            setRecentAlerts((prevAlerts) =>
+              mergeAndTrim(prevAlerts, [{ ...alert, zoneName }]),
+            );
+          }
 
           return next;
         });
@@ -414,24 +424,57 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
   const showEmergency = activeAlertsCount > 0;
   const totalSensors = zones.reduce((acc, z) => acc + (z.sensorCount ?? 0), 0);
 
-  const handleToggle = () => {
-    if (armed) {
+  const handleToggle = async () => {
+    if (toggleLoading) return;
+    if (isActive) {
       setShowConfirm(true);
-    } else {
-      Animated.sequence([
-        Animated.timing(switchAnim, {
-          toValue: 0.95,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(switchAnim, {
-          toValue: 1,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-      ]).start();
-      setArmed(true);
+      return;
     }
+
+    setToggleLoading(true);
+    const actionBy =
+      user?.email ||
+      `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+      "mobile";
+    const result = await toggleSystemState({ isActive: true, actionBy });
+    if (!result.success) {
+      Alert.alert(
+        "Erreur",
+        result.error || "Impossible d'activer la surveillance.",
+      );
+    }
+    setToggleLoading(false);
+  };
+
+  const handleConfirmDisable = async () => {
+    if (!offReason.trim()) {
+      setReasonError("Une raison est requise pour désactiver la surveillance.");
+      return;
+    }
+
+    setToggleLoading(true);
+    setShowConfirm(false);
+    const actionBy =
+      user?.email ||
+      `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ||
+      "mobile";
+    const result = await toggleSystemState({
+      isActive: false,
+      actionBy,
+      reason: offReason.trim(),
+    });
+
+    if (!result.success) {
+      Alert.alert(
+        "Erreur",
+        result.error || "Impossible de désactiver la surveillance.",
+      );
+    } else {
+      setOffReason("");
+      setReasonError("");
+    }
+
+    setToggleLoading(false);
   };
 
   const getZoneStatus = (zone) => zone.status ?? "normal";
@@ -514,7 +557,7 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
           <View style={{ flex: 1 }}>
             <Text style={styles.surveillanceTitle}>Surveillance Globale</Text>
             <View style={styles.surveillanceStatus}>
-              {armed ? (
+              {isActive ? (
                 <>
                   <PulseDot color={C.green} size={7} />
                   <Text
@@ -540,14 +583,19 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
             <TouchableOpacity
               onPress={handleToggle}
               activeOpacity={0.85}
+              disabled={toggleLoading}
               style={[
                 styles.toggle,
-                { backgroundColor: armed ? C.orange : C.border },
+                { backgroundColor: isActive ? C.orange : C.border },
               ]}
             >
-              <Animated.View
-                style={[styles.toggleThumb, { left: armed ? 26 : 3 }]}
-              />
+              {toggleLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Animated.View
+                  style={[styles.toggleThumb, { left: isActive ? 26 : 3 }]}
+                />
+              )}
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -804,22 +852,37 @@ export const DashboardScreen = ({ onZone, onAlert }) => {
             </View>
             <Text style={styles.modalTitle}>Désactiver la surveillance ?</Text>
             <Text style={styles.modalDesc}>
-              Toutes les alertes seront suspendues. Cette action nécessite votre
-              confirmation.
+              Cette action arrêtera la surveillance globale. Merci de préciser
+              un motif avant de confirmer.
             </Text>
+            <TextInput
+              value={offReason}
+              onChangeText={(value) => {
+                setOffReason(value);
+                if (reasonError) setReasonError("");
+              }}
+              placeholder="Motif de désactivation"
+              placeholderTextColor={C.textSub}
+              multiline
+              numberOfLines={3}
+              style={styles.modalTextInput}
+              editable={!toggleLoading}
+            />
+            {reasonError ? (
+              <Text style={styles.modalErrorText}>{reasonError}</Text>
+            ) : null}
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 onPress={() => setShowConfirm(false)}
                 style={[styles.modalBtn, styles.modalBtnSecondary]}
+                disabled={toggleLoading}
               >
                 <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => {
-                  setArmed(false);
-                  setShowConfirm(false);
-                }}
+                onPress={handleConfirmDisable}
                 style={[styles.modalBtn, styles.modalBtnDanger]}
+                disabled={toggleLoading}
               >
                 <Text style={styles.modalBtnDangerText}>Désactiver</Text>
               </TouchableOpacity>
@@ -1305,6 +1368,25 @@ const styles = StyleSheet.create({
   modalBtnSecondaryText: { fontSize: 14, fontWeight: "600", color: C.textSub },
   modalBtnDanger: { backgroundColor: C.red },
   modalBtnDangerText: { fontSize: 14, fontWeight: "700", color: "#fff" },
+  modalTextInput: {
+    width: "100%",
+    minHeight: 100,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.bgLight,
+    padding: 14,
+    color: C.text,
+    textAlignVertical: "top",
+    marginBottom: 10,
+  },
+  modalErrorText: {
+    width: "100%",
+    color: C.red,
+    fontSize: 12,
+    marginBottom: 8,
+    textAlign: "left",
+  },
 });
 
 export default DashboardScreen;

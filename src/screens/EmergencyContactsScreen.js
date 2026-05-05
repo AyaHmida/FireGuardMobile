@@ -1,18 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Card from "../components/Card";
 import { useAuth } from "../context/Authcontext";
@@ -330,7 +330,8 @@ const SimulateBanner = ({ onSimulate, simulating, simResult }) => (
 
 // ─── Main screen ────────────────────────────────────────────────────────────
 export const EmergencyContactsScreen = ({ onBack }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const userId = user?.id;
 
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -348,20 +349,28 @@ export const EmergencyContactsScreen = ({ onBack }) => {
   const fetchContacts = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
-    const { success, data, error } = await emergencyService.getContacts(token);
+    const { success, data, error } = await emergencyService.getContacts(
+      userId,
+      token,
+    );
     if (success) setContacts(data);
     else setFetchError(error ?? "Erreur de chargement");
     setLoading(false);
-  }, [token]);
+  }, [token, userId]);
 
   useEffect(() => {
+    if (!userId) return; // IMPORTANT
     fetchContacts();
-  }, [fetchContacts]);
+  }, [fetchContacts, userId]);
 
   // ── Add ────────────────────────────────────────────────────────────────
   const handleAdd = async (dto) => {
     setAdding(true);
-    const { success, error } = await emergencyService.addContact(dto, token);
+    const { success, error } = await emergencyService.addContact(
+      userId,
+      dto,
+      token,
+    );
     setAdding(false);
     if (success) {
       setModalVisible(false);
@@ -388,8 +397,11 @@ export const EmergencyContactsScreen = ({ onBack }) => {
     }
     setSimulating(true);
     setSimResult(null);
-    const { success, message, error } =
-      await emergencyService.simulateCall(token);
+    const { success, message, error } = await emergencyService.simulateCall(
+      userId,
+      token,
+    );
+
     setSimulating(false);
     if (success) {
       setSimResult(message);

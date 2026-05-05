@@ -3,15 +3,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ALERTS } from "../constants/mockData";
 import { Colors } from "../theme/colors";
 
-export const BottomNav = ({ active, onChange }) => {
-  const tabs = [
+export const BottomNav = ({ active, onChange, locked = false }) => {
+  const allTabs = [
     {
       id: "dashboard",
       icon: "home-outline",
       label: "Accueil",
       color: "#4CAF50",
     }, // vert
-    { id: "zones", icon: "location-outline", label: "Zones", color: "#2196F3" }, // bleu
     {
       id: "alerts",
       icon: "notifications-outline",
@@ -30,7 +29,16 @@ export const BottomNav = ({ active, onChange }) => {
       label: "Profil",
       color: "#FF9800",
     }, // orange
+    {
+      id: "chatbot",
+      icon: "chatbubble-ellipses-outline",
+      label: "Assistant",
+      color: "#FF5A3C",
+    },
   ];
+  const tabs = locked
+    ? allTabs.filter((tab) => tab.id === "profile" || tab.id === "dashboard")
+    : allTabs;
 
   const alertCount = ALERTS.filter((a) => !a.resolved).length;
 
@@ -132,6 +140,25 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     backgroundColor: Colors.fire,
+  },
+  // Chatbot bouton surélevé
+  chatbotBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: "#FF5A3C",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -14,
+    shadowColor: "#FF5A3C",
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  chatbotBtnActive: {
+    backgroundColor: "#e84e33",
+    shadowOpacity: 0.6,
   },
 });
 
