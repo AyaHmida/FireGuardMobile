@@ -1,24 +1,37 @@
 import { useEffect, useState } from "react";
-import { Linking, Platform, StatusBar, StyleSheet, View } from "react-native";
+import {
+  Linking,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { AuthProvider } from "./src/context/Authcontext";
+import {
+  SystemStateProvider,
+  useSystemState,
+} from "./src/context/SystemStateContext";
 import { Colors } from "./src/theme/colors";
 
-import BottomNav from "./src/components/BottomNav";
+import { BottomNav } from "./src/components/BottomNav";
 import AppStatusBar from "./src/components/StatusBar";
-import AcceptInvitationScreen from "./src/screens/AcceptInvitationScreen";
-import AlertsScreen from "./src/screens/AlertsScreen";
+import { AcceptInvitationScreen } from "./src/screens/AcceptInvitationScreen";
+import { AlertsScreen } from "./src/screens/AlertsScreen";
 import { ChangePasswordScreen } from "./src/screens/ChangePasswordScreen";
-import DashboardScreen from "./src/screens/DashboardScreen";
+import ChatbotScreen from "./src/screens/Chatbotscreen";
+import { DashboardScreen } from "./src/screens/DashboardScreen";
 import { EmergencyContactsScreen } from "./src/screens/EmergencyContactsScreen";
-import FamilyScreen from "./src/screens/FamilyScreen";
+import { FamilyScreen } from "./src/screens/FamilyScreen";
 import { ForgotPasswordScreen } from "./src/screens/Forgotpasswordscreen";
-import LoginScreen from "./src/screens/LoginScreen";
-import ProfileScreen from "./src/screens/ProfileScreen";
-import RegisterScreen from "./src/screens/Registerscreen";
+import { LoginScreen } from "./src/screens/LoginScreen";
+import { ProfileScreen } from "./src/screens/ProfileScreen";
+import { RegisterScreen } from "./src/screens/Registerscreen";
 import { ResetPasswordScreen } from "./src/screens/Resetpasswordscreen";
-import ZoneDetailScreen from "./src/screens/ZoneDetailScreen";
+import { ZoneDetailScreen } from "./src/screens/ZoneDetailScreen";
 function AppContent() {
   const [screen, setScreen] = useState("login");
   const [navTab, setNavTab] = useState("dashboard");
@@ -99,25 +112,40 @@ function AppContent() {
     "resetPassword",
   ];
   const isLoggedIn = !PUBLIC_SCREENS.includes(screen) && !invitationToken;
+  const { locked } = useSystemState();
+  const isLockRouteAllowed =
+    !locked ||
+    screen === "changePassword" ||
+    (screen === "app" && (navTab === "profile" || navTab === "dashboard"));
 
   // ── Handlers ──────────────────────────────────────────────────────
   const handleLogin = () => setScreen("app");
 
   const handleZone = (zone) => {
+    if (locked) return;
     setSelectedZone(zone);
     setScreen("zone");
   };
 
   // ✅ CORRIGÉ — reçoit zoneId depuis DashboardScreen
   const handleAlert = (zoneId) => {
+    if (locked) return;
     setAlertZoneId(zoneId ?? null);
     setNavTab("alerts");
     setScreen("app");
   };
 
-  const handleBack = () => setScreen("app");
+  const handleBack = () => {
+    if (locked) {
+      setScreen("app");
+      setNavTab("dashboard");
+      return;
+    }
+    setScreen("app");
+  };
 
   const handleNavTab = (tab) => {
+    if (locked && tab !== "profile" && tab !== "dashboard") return;
     setNavTab(tab);
     setScreen("app");
   };
@@ -128,7 +156,18 @@ function AppContent() {
   };
 
   const handleChangePassword = () => setScreen("changePassword");
-  const handleEmergencyContacts = () => setScreen("emergencyContacts");
+  const handleEmergencyContacts = () => {
+    if (locked) return;
+    setScreen("emergencyContacts");
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn || !locked) return;
+    if (!isLockRouteAllowed) {
+      setScreen("app");
+      setNavTab("dashboard");
+    }
+  }, [isLoggedIn, locked, isLockRouteAllowed]);
 
   const renderScreen = () => {
     // ── Invitation ─────────────────────────────────────────────────
@@ -189,6 +228,41 @@ function AppContent() {
       return <ZoneDetailScreen zone={selectedZone} onBack={handleBack} />;
     if (screen === "emergencyContacts")
       return <EmergencyContactsScreen onBack={() => setScreen("app")} />;
+
+    if (locked && !isLockRouteAllowed) {
+      return (
+        <View style={styles.lockScreen}>
+          <View style={styles.lockCard}>
+            <Text style={styles.lockTitle}>Système désactivé</Text>
+            <Text style={styles.lockDescription}>
+              La sécurité globale est désactivée. Seules les actions de sécurité
+              sont autorisées.
+            </Text>
+            <TouchableOpacity
+              style={[styles.lockButton, styles.lockPrimaryButton]}
+              onPress={() => {
+                setNavTab("profile");
+                setScreen("app");
+              }}
+            >
+              <Text style={styles.lockButtonText}>Accéder au profil</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.lockButton, styles.lockSecondaryButton]}
+              onPress={() => setScreen("changePassword")}
+            >
+              <Text style={styles.lockButtonText}>Changer le mot de passe</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.lockButton, styles.lockSecondaryButton]}
+              onPress={handleLogout}
+            >
+              <Text style={styles.lockButtonText}>Se déconnecter</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
     switch (navTab) {
       case "dashboard":
         return <DashboardScreen onZone={handleZone} onAlert={handleAlert} />;
@@ -208,6 +282,8 @@ function AppContent() {
         );
       case "family":
         return <FamilyScreen onBack={handleBack} />;
+      case "chatbot":
+        return <ChatbotScreen onBack={handleBack} />;
       default:
         return <DashboardScreen onZone={handleZone} onAlert={handleAlert} />;
     }
@@ -219,7 +295,7 @@ function AppContent() {
       {isLoggedIn && <AppStatusBar />}
       <View style={styles.content}>{renderScreen()}</View>
       {isLoggedIn && screen !== "zone" && screen !== "changePassword" && (
-        <BottomNav active={navTab} onChange={handleNavTab} />
+        <BottomNav active={navTab} onChange={handleNavTab} locked={locked} />
       )}
     </SafeAreaView>
   );
@@ -228,9 +304,11 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <SafeAreaProvider>
-        <AppContent />
-      </SafeAreaProvider>
+      <SystemStateProvider>
+        <SafeAreaProvider>
+          <AppContent />
+        </SafeAreaProvider>
+      </SystemStateProvider>
     </AuthProvider>
   );
 }
@@ -238,4 +316,54 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.bg },
   content: { flex: 1 },
+  lockScreen: {
+    flex: 1,
+    backgroundColor: Colors.bgLight,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  lockCard: {
+    width: "100%",
+    maxWidth: 440,
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: Colors.text,
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 8,
+  },
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  lockDescription: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 22,
+  },
+  lockButton: {
+    width: "100%",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  lockPrimaryButton: {
+    backgroundColor: Colors.fire,
+  },
+  lockSecondaryButton: {
+    backgroundColor: Colors.surface,
+  },
+  lockButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+  },
 });

@@ -27,6 +27,10 @@ export const API_ENDPOINTS = {
   DEVICE_CONTROL: {
     CONTROL: (deviceId) => `${BASE_URL}/api/device-control/${deviceId}`,
   },
+  SYSTEM: {
+    STATUS: `${BASE_URL}/api/systemstat/status`,
+    TOGGLE: `${BASE_URL}/api/systemstat/toggle`,
+  },
   SENSOR_CONFIG: {
     GET_BY_SENSOR: (sensorId) =>
       `${BASE_URL}/api/sensor-configurations/${sensorId}`,
@@ -72,7 +76,7 @@ export const apiCall = async (
     }
 
     return { data, error: null, status: response.status };
-  } catch (err) {
+  } catch {
     return {
       data: null,
       error: "Impossible de contacter le serveur. Vérifiez votre connexion.",
